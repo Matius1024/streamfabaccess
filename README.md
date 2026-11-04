@@ -4,7 +4,7 @@ Dodatek do czytnika ekranu [NVDA](https://www.nvaccess.org/), który poprawia do
 
 ## Pobieranie i instalacja
 
-1. Pobierz plik `streamFabDostep-<wersja>.nvda-addon` z zakładki [Releases](../../releases/latest).
+1. Pobierz najnowszą wersję: [streamfabaccess.nvda-addon](https://github.com/Matius1024/streamfabaccess/releases/latest/download/streamfabaccess.nvda-addon) (link zawsze prowadzi do najnowszego wydania; wcześniejsze wersje są w zakładce [Releases](../../releases)).
 2. Otwórz go (Enter w Eksploratorze), potwierdź instalację i uruchom ponownie NVDA.
 
 Wymagany NVDA 2024.1 lub nowszy (testowano z NVDA 2026.3 i StreamFab 7.0.5.6 na Windows 11).
