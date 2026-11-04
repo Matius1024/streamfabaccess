@@ -12,7 +12,7 @@ kbd { font-family: inherit; font-weight: bold; }
 </head>
 <body>
 <h1>StreamFab dostęp</h1>
-<p>Wersja 0.4.0. Dodatek do czytnika ekranu NVDA, który poprawia dostępność programu StreamFab (StreamFab64.exe) dla osób niewidomych.</p>
+<p>Wersja 0.4.1. Dodatek do czytnika ekranu NVDA, który poprawia dostępność programu StreamFab (StreamFab64.exe) dla osób niewidomych.</p>
 
 <h2>Spis treści</h2>
 <ul>
@@ -20,6 +20,7 @@ kbd { font-family: inherit; font-weight: bold; }
 <li><a href="#instalacja">Instalacja i usuwanie</a></li>
 <li><a href="#skroty">Skróty klawiszowe</a></li>
 <li><a href="#dzialanie">Jak działa dodatek</a></li>
+<li><a href="#okno-pobierania">Okno pobierania serialu lub filmu</a></li>
 <li><a href="#porady">Porady dotyczące StreamFab</a></li>
 <li><a href="#ograniczenia">Znane ograniczenia</a></li>
 <li><a href="#zmiany">Historia zmian</a></li>
@@ -33,13 +34,15 @@ kbd { font-family: inherit; font-weight: bold; }
 <li>stan pobierania („Otwórz URL wideo”, „Gotowe do pobrania”, kolejka zadań) nie jest dostępny z klawiatury;</li>
 <li>w wielu oknach przyciski OK, Anuluj i Zamknij nie przyjmują fokusu, więc Tab je pomija;</li>
 <li>menu My Account obsługuje klawiaturę, ale nie zgłasza fokusu i NVDA milczy;</li>
-<li>lista pobranych filmów (Pobrane, zakładka Downloaded) jest rysowana bez tekstu.</li>
+<li>lista pobranych filmów (Pobrane, zakładka Downloaded) jest rysowana bez tekstu;</li>
+<li>w oknie pobierania serialu odcinki mają angielskie dopiski („Checked”, „Collapsed”), NVDA czasem czyta nie ten odcinek, na którym jest fokus, a zaznaczenie Spacją nie jest ogłaszane;</li>
+<li>listy wyboru języka audio i napisów mają angielskie nazwy („Language”, „Subtitle”), a języki na liście są po angielsku.</li>
 </ul>
 
 <h2 id="instalacja">Instalacja i usuwanie</h2>
 <h3>Instalacja</h3>
 <ol>
-<li>Otwórz plik <code>streamFabDostep-0.4.0.nvda-addon</code> (zaznacz go w Eksploratorze i naciśnij Enter).</li>
+<li>Otwórz plik <code>streamFabDostep-0.4.1.nvda-addon</code> (zaznacz go w Eksploratorze i naciśnij Enter).</li>
 <li>NVDA zapyta, czy zainstalować dodatek. Wybierz <kbd>Tak</kbd>. Jeśli starsza wersja jest już zainstalowana, NVDA zaproponuje jej aktualizację.</li>
 <li>Uruchom ponownie NVDA, gdy o to poprosi.</li>
 </ol>
@@ -82,12 +85,14 @@ kbd { font-family: inherit; font-weight: bold; }
 
 <h2 id="dzialanie">Jak działa dodatek</h2>
 <h3>Nazwy elementów</h3>
-<p>Dodatek nadaje polskie nazwy elementom bez opisu: Wstecz, Dalej, Odśwież, Adres strony, Dodaj stronę do zakładek, Nowa karta, Pobierz wideo, Zamknij, Wybierz folder, Adres URL, Popularne witryny, Pobrane filmy, Akcja po zakończeniu pobierania. Inne nienazwane przyciski dostają nazwę utworzoną z wewnętrznej nazwy elementu (zwykle angielską). Nienazwane pola i listy rozwijane dostają nazwę od tekstu stojącego przed nimi.</p>
+<p>Dodatek nadaje polskie nazwy elementom bez opisu: Wstecz, Dalej, Odśwież, Adres strony, Dodaj stronę do zakładek, Nowa karta, Pobierz wideo, Zamknij, Wybierz folder, Adres URL, Popularne witryny, Pobrane filmy, Akcja po zakończeniu pobierania, a w oknie pobierania serialu: Lista odcinków, Język audio, Napisy, Rozdzielczość, Dzień tygodnia, Godzina. Inne nienazwane przyciski dostają nazwę utworzoną z wewnętrznej nazwy elementu (zwykle angielską). Nienazwane pola i listy rozwijane dostają nazwę od tekstu stojącego przed nimi.</p>
 <h3>Ogłaszanie stanu</h3>
 <p>Gdy okno StreamFab jest aktywne, dodatek co sekundę sprawdza pasek stanu pobierania i mówi o zmianach, np. „Gotowe do pobrania”, „1 filmów w kolejce zadań”, „Przycisk Pobierz wideo jest aktywny”.</p>
 <h3>Nowe okna</h3>
 <p>Gdy pojawi się nowe okno (komunikat, ostrzeżenie, menu), dodatek czyta jego tytuł i treść. Długie okna, np. Ustawienia, są zapowiadane tylko tytułem — treść czyta <kbd>Ctrl+Shift+R</kbd>.</p>
 <p>W oknach, które nie zgłaszają fokusu (np. menu My Account), dodatek po każdym naciśnięciu <kbd>Tab</kbd>, <kbd>Shift+Tab</kbd>, <kbd>Strzałki w górę</kbd> i <kbd>w dół</kbd> sam sprawdza, który element ma fokus, i go czyta. Te klawisze są przechwytywane tylko wtedy, gdy w StreamFab jest otwarte okno, więc tryb przeglądania stron działa normalnie.</p>
+<h3>Odcinki i języki</h3>
+<p>W liście odcinków dodatek usuwa angielskie dopiski stanu (stan zaznaczenia i rozwinięcia podaje NVDA po polsku) i dodaje czas trwania odcinka. Po strzałce w górę lub w dół sprawdza, który odcinek naprawdę ma fokus, i jeśli NVDA zostało na poprzednim — przenosi je na właściwy. Po <kbd>Spacji</kbd> mówi „zaznaczone” albo „niezaznaczone” oraz licznik wybranych odcinków. Na rozwiniętej liście języków nazwy języków są tłumaczone na polski. <kbd>Spacja</kbd> jest przechwytywana tylko wtedy, gdy w StreamFab jest otwarte okno.</p>
 <h3>Lista pobranych filmów</h3>
 <p>Wiersze na zakładce Downloaded nie zawierają tekstu. Dodatek odczytuje tytuły i ścieżki plików z danych programu w folderze <code>%APPDATA%\StreamFab\StreamFab\localdata</code> (tylko odczyt — niczego tam nie zmienia).</p>
 <h3>Bezpieczeństwo</h3>
@@ -119,6 +124,8 @@ kbd { font-family: inherit; font-weight: bold; }
 </ul>
 
 <h2 id="zmiany">Historia zmian</h2>
+<h3>0.4.1</h3>
+<ul><li>Uzupełniona dokumentacja i opis dodatku o obsługę okna pobierania serialu.</li></ul>
 <h3>0.4.0</h3>
 <ul>
 <li>Okno pobierania: odcinki czytane bez angielskich dopisków („Checked”, „Collapsed”), z czasem trwania; dodatek pilnuje, żeby NVDA czytało odcinek, na którym naprawdę jest fokus.</li>
