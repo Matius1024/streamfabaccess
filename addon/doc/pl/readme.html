@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>StreamFab dostęp — dokumentacja</title>
+<style>
+body { font-family: Segoe UI, Arial, sans-serif; max-width: 50em; margin: 1em auto; padding: 0 1em; line-height: 1.5; }
+table { border-collapse: collapse; }
+th, td { border: 1px solid #888; padding: 0.3em 0.6em; text-align: left; vertical-align: top; }
+kbd { font-family: inherit; font-weight: bold; }
+</style>
+</head>
+<body>
+<h1>StreamFab dostęp</h1>
+<p>Wersja 0.3.2. Dodatek do czytnika ekranu NVDA, który poprawia dostępność programu StreamFab (StreamFab64.exe) dla osób niewidomych.</p>
+
+<h2>Spis treści</h2>
+<ul>
+<li><a href="#problemy">Jakie problemy rozwiązuje</a></li>
+<li><a href="#instalacja">Instalacja i usuwanie</a></li>
+<li><a href="#skroty">Skróty klawiszowe</a></li>
+<li><a href="#dzialanie">Jak działa dodatek</a></li>
+<li><a href="#porady">Porady dotyczące StreamFab</a></li>
+<li><a href="#ograniczenia">Znane ograniczenia</a></li>
+<li><a href="#zmiany">Historia zmian</a></li>
+</ul>
+
+<h2 id="problemy">Jakie problemy rozwiązuje</h2>
+<p>StreamFab jest zbudowany w bibliotece Qt z wbudowaną przeglądarką Chromium (CEF). Większość programu jest czytelna, ale:</p>
+<ul>
+<li>przyciski nad przeglądarką (Wstecz, Dalej, Odśwież, pole adresu, zakładka) nie mają nazw;</li>
+<li>przycisk pobierania wideo jest osobnym okienkiem, do którego nie da się dojść klawiszem Tab;</li>
+<li>stan pobierania („Otwórz URL wideo”, „Gotowe do pobrania”, kolejka zadań) nie jest dostępny z klawiatury;</li>
+<li>w wielu oknach przyciski OK, Anuluj i Zamknij nie przyjmują fokusu, więc Tab je pomija;</li>
+<li>menu My Account obsługuje klawiaturę, ale nie zgłasza fokusu i NVDA milczy;</li>
+<li>lista pobranych filmów (Pobrane, zakładka Downloaded) jest rysowana bez tekstu.</li>
+</ul>
+
+<h2 id="instalacja">Instalacja i usuwanie</h2>
+<h3>Instalacja</h3>
+<ol>
+<li>Otwórz plik <code>streamFabDostep-0.3.2.nvda-addon</code> (zaznacz go w Eksploratorze i naciśnij Enter).</li>
+<li>NVDA zapyta, czy zainstalować dodatek. Wybierz <kbd>Tak</kbd>. Jeśli starsza wersja jest już zainstalowana, NVDA zaproponuje jej aktualizację.</li>
+<li>Uruchom ponownie NVDA, gdy o to poprosi.</li>
+</ol>
+<p>Wymagany NVDA 2024.1 lub nowszy. Dodatek testowano z NVDA 2026.3 i StreamFab 7.0.5.6 na Windows 11.</p>
+<h3>Usuwanie</h3>
+<p>Menu NVDA (<kbd>NVDA+N</kbd>) → Narzędzia → Menedżer dodatków (Sklep z dodatkami) → zakładka Zainstalowane → „StreamFab dostęp” → Usuń. Następnie uruchom ponownie NVDA.</p>
+<h3>Zmiana skrótów</h3>
+<p>Wszystkie skróty można zmienić w menu NVDA → Ustawienia → Zdarzenia wejścia, w kategorii „StreamFab dostęp”. Kategoria jest widoczna, gdy okno StreamFab jest aktywne.</p>
+
+<h2 id="skroty">Skróty klawiszowe</h2>
+<p>Skróty działają tylko wtedy, gdy aktywne jest okno StreamFab.</p>
+<h3>Pobieranie i przeglądarka</h3>
+<table>
+<tr><th>Skrót</th><th>Działanie</th></tr>
+<tr><td><kbd>Ctrl+Shift+D</kbd></td><td>Naciska przycisk Pobierz wideo. Jeśli jest nieaktywny, mówi dlaczego (np. „Otwórz URL wideo”).</td></tr>
+<tr><td><kbd>Ctrl+Shift+S</kbd></td><td>Czyta stan pobierania, kolejkę zadań i to, czy przycisk pobierania jest aktywny.</td></tr>
+<tr><td><kbd>Ctrl+L</kbd></td><td>Przenosi fokus do pola adresu przeglądarki StreamFab. Wpisz adres i naciśnij Enter.</td></tr>
+<tr><td><kbd>Ctrl+Shift+L</kbd></td><td>Otwiera okno z listą pobranych filmów: Odtwórz, Pokaż w folderze, Kopiuj ścieżkę.</td></tr>
+<tr><td><kbd>Ctrl+Shift+A</kbd></td><td>Włącza lub wyłącza automatyczne ogłaszanie zmian stanu i nowych okien (domyślnie włączone).</td></tr>
+<tr><td><kbd>Ctrl+Shift+H</kbd></td><td>Czyta listę skrótów.</td></tr>
+</table>
+<h3>Okna dialogowe</h3>
+<table>
+<tr><th>Skrót</th><th>Działanie</th></tr>
+<tr><td><kbd>Ctrl+Shift+O</kbd></td><td>Naciska OK (lub inny przycisk zatwierdzający) w otwartym oknie.</td></tr>
+<tr><td><kbd>Ctrl+Shift+C</kbd></td><td>Naciska Anuluj, a gdy go nie ma — Zamknij.</td></tr>
+<tr><td><kbd>Ctrl+Shift+Strzałka w prawo</kbd> / <kbd>w lewo</kbd></td><td>Przechodzi po wszystkich przyciskach okna, także tych, do których nie dochodzi Tab. NVDA mówi nazwę i numer, np. „OK, 3 z 4”.</td></tr>
+<tr><td><kbd>Ctrl+Shift+Enter</kbd></td><td>Naciska przycisk wybrany strzałkami.</td></tr>
+<tr><td><kbd>Ctrl+Shift+R</kbd></td><td>Czyta całą treść okna: tytuł, komunikaty i zawartość pól.</td></tr>
+</table>
+<h3>Okno listy pobranych filmów (Ctrl+Shift+L)</h3>
+<table>
+<tr><th>Klawisz</th><th>Działanie</th></tr>
+<tr><td><kbd>Strzałki</kbd></td><td>Wybór filmu. Każda pozycja to tytuł i serwis; „(brak pliku)” oznacza, że plik usunięto z dysku.</td></tr>
+<tr><td><kbd>Enter</kbd> lub <kbd>Alt+O</kbd></td><td>Odtwarza film w domyślnym odtwarzaczu.</td></tr>
+<tr><td><kbd>Alt+F</kbd></td><td>Otwiera folder z filmem w Eksploratorze i zaznacza plik.</td></tr>
+<tr><td><kbd>Alt+K</kbd></td><td>Kopiuje ścieżkę pliku do schowka.</td></tr>
+<tr><td><kbd>Escape</kbd></td><td>Zamyka okno.</td></tr>
+</table>
+
+<h2 id="dzialanie">Jak działa dodatek</h2>
+<h3>Nazwy elementów</h3>
+<p>Dodatek nadaje polskie nazwy elementom bez opisu: Wstecz, Dalej, Odśwież, Adres strony, Dodaj stronę do zakładek, Nowa karta, Pobierz wideo, Zamknij, Wybierz folder, Adres URL, Popularne witryny, Pobrane filmy, Akcja po zakończeniu pobierania. Inne nienazwane przyciski dostają nazwę utworzoną z wewnętrznej nazwy elementu (zwykle angielską). Nienazwane pola i listy rozwijane dostają nazwę od tekstu stojącego przed nimi.</p>
+<h3>Ogłaszanie stanu</h3>
+<p>Gdy okno StreamFab jest aktywne, dodatek co sekundę sprawdza pasek stanu pobierania i mówi o zmianach, np. „Gotowe do pobrania”, „1 filmów w kolejce zadań”, „Przycisk Pobierz wideo jest aktywny”.</p>
+<h3>Nowe okna</h3>
+<p>Gdy pojawi się nowe okno (komunikat, ostrzeżenie, menu), dodatek czyta jego tytuł i treść. Długie okna, np. Ustawienia, są zapowiadane tylko tytułem — treść czyta <kbd>Ctrl+Shift+R</kbd>.</p>
+<p>W oknach, które nie zgłaszają fokusu (np. menu My Account), dodatek po każdym naciśnięciu <kbd>Tab</kbd>, <kbd>Shift+Tab</kbd>, <kbd>Strzałki w górę</kbd> i <kbd>w dół</kbd> sam sprawdza, który element ma fokus, i go czyta. Te klawisze są przechwytywane tylko wtedy, gdy w StreamFab jest otwarte okno, więc tryb przeglądania stron działa normalnie.</p>
+<h3>Lista pobranych filmów</h3>
+<p>Wiersze na zakładce Downloaded nie zawierają tekstu. Dodatek odczytuje tytuły i ścieżki plików z danych programu w folderze <code>%APPDATA%\StreamFab\StreamFab\localdata</code> (tylko odczyt — niczego tam nie zmienia).</p>
+<h3>Bezpieczeństwo</h3>
+<p>Dodatek nie łączy się z internetem i nie zmienia ustawień StreamFab. Przyciski naciska tylko na Twoje polecenie.</p>
+
+<h2 id="porady">Porady dotyczące StreamFab</h2>
+<ul>
+<li>Typowe pobieranie: lewe menu → Usługi VIP → wybierz serwis → zaloguj się na stronie → otwórz film. Poczekaj na „Gotowe do pobrania” lub komunikat o aktywnym przycisku i naciśnij <kbd>Ctrl+Shift+D</kbd>. W oknie opcji pobierania zatwierdź <kbd>Ctrl+Shift+O</kbd>.</li>
+<li>Strony WWW w StreamFab czyta się jak w przeglądarce (tryb przeglądania). <kbd>NVDA+Spacja</kbd> przełącza tryby.</li>
+<li>Uwaga na okno reklamy UniFab: przycisk „Instaluj w tle” instaluje inny program. Zamykaj je przyciskiem Zamknij lub <kbd>Ctrl+Shift+C</kbd>.</li>
+<li>Ustawienia → Preferencje → „Wybierz wstępnie opisowe Audio, jeśli dostępne” — po włączeniu StreamFab wybiera ścieżkę z audiodeskrypcją, gdy serwis ją udostępnia.</li>
+<li>Ustawienia → Ogólne → „Katalog pobierania” i „Katalog tymczasowy” — ustaw na dysk z dużą ilością wolnego miejsca; inaczej pojawia się ostrzeżenie o braku miejsca.</li>
+</ul>
+
+<h2 id="ograniczenia">Znane ograniczenia</h2>
+<ul>
+<li>Przy kilku pobranych filmach nazwy wierszy na zakładce Downloaded mogą nie odpowiadać kolejności na ekranie. Okno <kbd>Ctrl+Shift+L</kbd> działa niezależnie od tego.</li>
+<li>Przyciski filtrów A–Z na stronie YouTube („Wszystkie wspierane witryny”) nie przyjmują fokusu.</li>
+<li>Komórki szablonu nazwy pliku w Ustawieniach → Preferencje nie mają tekstu.</li>
+<li>Pasek zakładek przeglądarki (Official Site, Hot Promotion, Forum) nie jest dostępny z klawiatury.</li>
+<li>W StreamFab <kbd>Ctrl+Shift+Strzałki</kbd> nie zaznaczają tekstu słowami, bo zajmuje je dodatek (można to zmienić w Zdarzeniach wejścia).</li>
+<li>Zakładka Downloading w trakcie pobierania i okno opcji pobierania po analizie filmu nie zostały jeszcze w pełni sprawdzone.</li>
+</ul>
+
+<h2 id="zmiany">Historia zmian</h2>
+<h3>0.3.2</h3>
+<ul><li>Dokumentacja dostępna z Menedżera dodatków; paczka instalacyjna.</li></ul>
+<h3>0.3.1</h3>
+<ul>
+<li>Automatyczne czytanie nowych okien; czytanie fokusu w menu My Account.</li>
+<li>Lista pobranych filmów (<kbd>Ctrl+Shift+L</kbd>) i nazwy wierszy na zakładce Downloaded.</li>
+<li>Ostrzeżenie przy oknie reklamy UniFab; nowe nazwy elementów; <kbd>Ctrl+Shift+C</kbd> naciska Zamknij, gdy brak Anuluj.</li>
+</ul>
+<h3>0.2.0</h3>
+<ul><li>Obsługa okien dialogowych: OK, Anuluj, przeglądanie przycisków, czytanie okna.</li></ul>
+<h3>0.1.0</h3>
+<ul><li>Nazwy przycisków przeglądarki, przycisk Pobierz wideo, stan pobierania, pole adresu.</li></ul>
+</body>
+</html>
