@@ -12,10 +12,14 @@ import subprocess
 import threading
 import time
 
+import api
 import appModuleHandler
 import comtypes
 import controlTypes
+import core
+import eventHandler
 import gui
+import NVDAObjects.UIA
 import queueHandler
 import ui
 import UIAHandler
@@ -47,6 +51,52 @@ NAMES = {
 	"listView_youtubePopularSites": "Popularne witryny",
 	"treeview_task_queue": "Pobrane filmy",
 }
+# Pola okna pobierania (po analizie filmu/serialu), które StreamFab nazywa po angielsku albo wcale.
+# Te nazwy zastępują nazwę programu zawsze.
+FORCE_NAMES = {
+	"comboBox_Audio": "Język audio",
+	"comboBox_Subtitle": "Napisy",
+	"comboBox_Resolution": "Rozdzielczość",
+	"comboBox_scheduleType": "Jak często sprawdzać nowe odcinki",
+	"comboBox_dayofWeek": "Dzień tygodnia",
+	"timeEdit_time": "Godzina",
+}
+# Qt dopisuje do nazw elementów list i drzew angielski stan ("Checked", "Collapsed, use Enter...").
+# NVDA i tak podaje stan po polsku, więc te dopiski usuwamy.
+_STATE_SUFFIX = re.compile(r",\s*(?:Checked|Not checked|Unchecked|Partially checked|Expanded|Collapsed)\b.*$", re.I | re.S)
+_DURATION = re.compile(r"^\d{1,2}:\d{2}(?::\d{2})?$")
+# Języki ścieżek audio i napisów na liście wyboru (StreamFab podaje je po angielsku).
+LANGUAGES = {
+	"Arabic": "arabski", "Bulgarian": "bułgarski", "Cantonese": "kantoński", "Catalan": "kataloński",
+	"Chinese": "chiński", "Croatian": "chorwacki", "Czech": "czeski", "Danish": "duński", "Dutch": "niderlandzki",
+	"English": "angielski", "Estonian": "estoński", "Finnish": "fiński", "Flemish": "flamandzki",
+	"French": "francuski", "German": "niemiecki", "Greek": "grecki", "Hebrew": "hebrajski", "Hindi": "hindi",
+	"Hungarian": "węgierski", "Icelandic": "islandzki", "Indonesian": "indonezyjski", "Italian": "włoski",
+	"Japanese": "japoński", "Korean": "koreański", "Latvian": "łotewski", "Lithuanian": "litewski",
+	"Malay": "malajski", "Mandarin": "mandaryński", "Norwegian": "norweski", "Polish": "polski",
+	"Portuguese": "portugalski", "Romanian": "rumuński", "Russian": "rosyjski", "Serbian": "serbski",
+	"Slovak": "słowacki", "Slovenian": "słoweński", "Spanish": "hiszpański", "Swedish": "szwedzki",
+	"Tagalog": "tagalski", "Tamil": "tamilski", "Telugu": "telugu", "Thai": "tajski", "Turkish": "turecki",
+	"Ukrainian": "ukraiński", "Vietnamese": "wietnamski",
+	"Latin America": "Ameryka Łacińska", "Brazil": "Brazylia", "Portugal": "Portugalia", "Canada": "Kanada",
+	"Spain": "Hiszpania", "France": "Francja", "Simplified": "uproszczony", "Traditional": "tradycyjny",
+	"Taiwan": "Tajwan", "Hong Kong": "Hongkong", "Forced": "wymuszone", "Audio Description": "audiodeskrypcja",
+}
+_LANG_WORD = re.compile(r"\b(" + "|".join(sorted((re.escape(k) for k in LANGUAGES), key=len, reverse=True)) + r")\b")
+# Klawisze przechwytywane, gdy otwarte jest okno StreamFab (gest: nazwa skryptu).
+DIALOG_GESTURES = {
+	"kb:tab": "passNavKey",
+	"kb:shift+tab": "passNavKey",
+	"kb:upArrow": "passNavKey",
+	"kb:downArrow": "passNavKey",
+	"kb:space": "toggleItem",
+}
+ITEM_ROLES = (
+	controlTypes.Role.TREEVIEWITEM,
+	controlTypes.Role.LISTITEM,
+	controlTypes.Role.DATAITEM,
+	controlTypes.Role.TABLECELL,
+)
 # Przyciski okien StreamFab często nie przyjmują fokusu (Tab ich pomija),
 # dlatego dodatek naciska je sam. Ostatni człon AutomationId przycisków zatwierdzania i anulowania:
 OK_BUTTONS = ("pushButton_ok", "pushButton_OK", "pushButton_confirm", "pushButton_yes", "btn_ok", "btnOk",
@@ -236,6 +286,7 @@ class Worker(threading.Thread):
 		self._loggedBar = False
 		self._dialogKey = None
 		self._cycle = None  # (identyfikator okna, indeks)
+		self._lastCount = None  # ostatnio przeczytany licznik zaznaczonych odcinków
 		self.onDialogChange = None  # wywoływane w głównym wątku NVDA: (czy jest otwarte okno)
 
 	# --- pętla ---
@@ -432,6 +483,7 @@ class Worker(threading.Thread):
 			return
 		self._dialogKey = key
 		self._cycle = None
+		self._lastCount = None
 		if self.onDialogChange:
 			queueHandler.queueFunction(queueHandler.eventQueue, self.onDialogChange, bool(dlg))
 		if not dlg or not self.autoAnnounce:
@@ -450,8 +502,8 @@ class Worker(threading.Thread):
 			return
 		try:
 			focus = self.uia.GetFocusedElement()
-			if focus and (focus.CurrentProcessId != self.pid or self.isInside(focus, dlg)):
-				return  # fokus zgłoszony poprawnie — NVDA przeczyta go sam
+			if focus and (focus.CurrentProcessId != self.pid or self.isInside(focus, dlg) or self.inPopup(focus)):
+				return  # fokus zgłoszony poprawnie (także w rozwiniętej liście) — NVDA przeczyta go sam
 			el = self.find(dlg, lambda e: e.CurrentHasKeyboardFocus, maxDepth=12)
 		except comtypes.COMError:
 			return
@@ -478,6 +530,30 @@ class Worker(threading.Thread):
 		except comtypes.COMError:
 			pass
 		return " ".join(p for p in (text, role, extra) if p)
+
+	def inPopup(self, el):
+		"""Czy element leży w rozwiniętej liście / menu (osobne okno najwyższego poziomu)."""
+		walker = self.uia.ControlViewWalker
+		root = self.uia.GetRootElement()
+		for _ in range(30):
+			parent = walker.GetParentElement(el)
+			if not parent or self.uia.CompareElements(parent, root):
+				return self.isPopup(el)
+			el = parent
+		return False
+
+	def taskSelectionCount(self):
+		"""Po zaznaczeniu odcinka czyta licznik okna pobierania („Wybrano 2 z 19”), jeśli się zmienił."""
+		dlg = self.activeDialog()
+		if not dlg:
+			return
+		el = self.find(dlg, lambda e: (e.CurrentAutomationId or "").endswith("widget_downloadText.label_artist"))
+		if not el:
+			return
+		text = (el.CurrentName or "").strip()
+		if text and text != self._lastCount:
+			self._lastCount = text
+			say(text)
 
 	def isInside(self, el, ancestor):
 		walker = self.uia.ControlViewWalker
@@ -676,6 +752,7 @@ class AppModule(appModuleHandler.AppModule):
 		self.worker.onDialogChange = self._setDialogGestures
 		self.worker.start()
 		self._dialogGestures = False
+		self._lastStateEvent = 0.0
 		self._films = []
 		self._filmsStamp = None
 
@@ -685,15 +762,13 @@ class AppModule(appModuleHandler.AppModule):
 
 	# Klawisze nawigacji przechwytujemy tylko wtedy, gdy otwarte jest okno StreamFab,
 	# żeby nie przeszkadzać trybowi przeglądania na stronach WWW.
-	NAV_KEYS = ("kb:tab", "kb:shift+tab", "kb:upArrow", "kb:downArrow")
-
 	def _setDialogGestures(self, on):
 		if on == self._dialogGestures:
 			return
 		self._dialogGestures = on
-		for g in self.NAV_KEYS:
+		for g, name in DIALOG_GESTURES.items():
 			if on:
-				self.bindGesture(g, "passNavKey")
+				self.bindGesture(g, name)
 			else:
 				try:
 					self.removeGestureBinding(g)
@@ -702,7 +777,65 @@ class AppModule(appModuleHandler.AppModule):
 
 	def script_passNavKey(self, gesture):
 		gesture.send()
+		core.callLater(250, self._syncFocus)
 		self.worker.tasks.put(self.worker.taskHiddenFocus)
+
+	def _focusedItem(self):
+		"""Element listy/drzewa, który naprawdę ma fokus klawiatury w StreamFab (świeżo z UIA)."""
+		try:
+			h = UIAHandler.handler
+			el = h.clientObject.GetFocusedElementBuildCache(h.baseCacheRequest)
+			obj = NVDAObjects.UIA.UIA(UIAElement=el) if el else None
+		except Exception:
+			return None
+		if not obj or obj.processID != self.processID or obj.role not in ITEM_ROLES:
+			return None
+		return obj
+
+	def _syncFocus(self):
+		"""Qt w listach i drzewach (odcinki, języki) czasem nie zgłasza przejścia na nowy element,
+		więc NVDA czyta stary albo nic. Wtedy sami podajemy NVDA właściwy element."""
+		obj = self._focusedItem()
+		if obj and obj != api.getFocusObject():
+			eventHandler.queueEvent("gainFocus", obj)
+		return obj
+
+	@staticmethod
+	def _checked(obj):
+		try:
+			states = obj.states
+		except Exception:
+			return None
+		if controlTypes.State.CHECKABLE not in states and controlTypes.State.CHECKED not in states:
+			return None
+		return controlTypes.State.CHECKED in states
+
+	def script_toggleItem(self, gesture):
+		"""Spacja na odcinku lub języku: Qt zmienia zaznaczenie bez komunikatu, więc go dopowiadamy."""
+		focus = api.getFocusObject()
+		before = self._checked(focus) if focus.role in ITEM_ROLES else None
+		pressed = time.monotonic()
+		gesture.send()
+		core.callLater(250, self._afterToggle, before, pressed)
+
+	def _afterToggle(self, before, pressed):
+		focus = api.getFocusObject()
+		obj = self._focusedItem()
+		if not obj:
+			return
+		if obj != focus:
+			eventHandler.queueEvent("gainFocus", obj)  # NVDA przeczyta element razem ze stanem
+		else:
+			after = self._checked(obj)
+			if after is not None and before is not None and after != before and self._lastStateEvent < pressed:
+				ui.message("zaznaczone" if after else "niezaznaczone")
+		if obj.role == controlTypes.Role.TREEVIEWITEM:
+			self.worker.tasks.put(self.worker.taskSelectionCount)
+
+	def event_stateChange(self, obj, nextHandler):
+		if obj == api.getFocusObject():
+			self._lastStateEvent = time.monotonic()
+		nextHandler()
 
 	def films(self):
 		"""Lista pobranych filmów, wczytywana ponownie, gdy pliki programu się zmienią."""
@@ -724,6 +857,9 @@ class AppModule(appModuleHandler.AppModule):
 		if aid is None:
 			return
 		role = obj.role
+		if role in ITEM_ROLES and obj.name:
+			self._cleanItem(obj)
+			return
 		if not aid:
 			if obj.name:
 				return
@@ -738,6 +874,12 @@ class AppModule(appModuleHandler.AppModule):
 		if not aid.startswith("StreamMainWnd"):
 			return
 		last = aid.rsplit(".", 1)[-1]
+		if last in FORCE_NAMES:
+			obj.name = FORCE_NAMES[last]
+			return
+		if last == "treeView" and ".pageTreeView." in aid:
+			obj.name = "Lista odcinków. Spacja zaznacza, strzałka w prawo rozwija sezon"
+			return
 		if last == "pushButton_operate":
 			obj.name = NAMES[last]
 			obj.role = controlTypes.Role.BUTTON
@@ -753,6 +895,25 @@ class AppModule(appModuleHandler.AppModule):
 				obj.name = humanize(last)
 		elif role in NAMED_ROLES:
 			obj.name = humanize(last)
+
+	@staticmethod
+	def _cleanItem(obj):
+		"""Odcinki i języki: bez angielskich dopisków stanu, z czasem trwania i polską nazwą języka."""
+		name = _STATE_SUFFIX.sub("", obj.name).strip()
+		if obj.role == controlTypes.Role.TREEVIEWITEM:
+			if _DURATION.match(name):
+				name = "czas trwania " + name
+			else:
+				try:
+					nxt = obj.next
+					if nxt and nxt.role == controlTypes.Role.TREEVIEWITEM and _DURATION.match((nxt.name or "").strip()):
+						name = "%s, %s" % (name, nxt.name.strip())
+				except Exception:
+					pass
+		elif obj.role == controlTypes.Role.LISTITEM:
+			name = _LANG_WORD.sub(lambda m: LANGUAGES[m.group(1)], name)
+		if name != obj.name:
+			obj.name = name
 
 	@staticmethod
 	def _nameFromLabel(obj):
@@ -844,5 +1005,6 @@ class AppModule(appModuleHandler.AppModule):
 			"Ctrl+Shift+L: lista pobranych filmów. Ctrl+Shift+A: ogłaszanie zmian i nowych okien. "
 			"W oknach dialogowych: Ctrl+Shift+O: OK. Ctrl+Shift+C: Anuluj lub Zamknij. "
 			"Ctrl+Shift+strzałka w prawo lub w lewo: przeglądanie przycisków. Ctrl+Shift+Enter: naciśnij wybrany. "
-			"Ctrl+Shift+R: przeczytaj okno. Ctrl+Shift+H: ta pomoc."
+			"Ctrl+Shift+R: przeczytaj okno. W oknie pobierania serialu Spacja zaznacza odcinek lub język. "
+			"Ctrl+Shift+H: ta pomoc."
 		)

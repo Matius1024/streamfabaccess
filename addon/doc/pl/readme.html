@@ -12,7 +12,7 @@ kbd { font-family: inherit; font-weight: bold; }
 </head>
 <body>
 <h1>StreamFab dostęp</h1>
-<p>Wersja 0.3.2. Dodatek do czytnika ekranu NVDA, który poprawia dostępność programu StreamFab (StreamFab64.exe) dla osób niewidomych.</p>
+<p>Wersja 0.4.0. Dodatek do czytnika ekranu NVDA, który poprawia dostępność programu StreamFab (StreamFab64.exe) dla osób niewidomych.</p>
 
 <h2>Spis treści</h2>
 <ul>
@@ -39,7 +39,7 @@ kbd { font-family: inherit; font-weight: bold; }
 <h2 id="instalacja">Instalacja i usuwanie</h2>
 <h3>Instalacja</h3>
 <ol>
-<li>Otwórz plik <code>streamFabDostep-0.3.2.nvda-addon</code> (zaznacz go w Eksploratorze i naciśnij Enter).</li>
+<li>Otwórz plik <code>streamFabDostep-0.4.0.nvda-addon</code> (zaznacz go w Eksploratorze i naciśnij Enter).</li>
 <li>NVDA zapyta, czy zainstalować dodatek. Wybierz <kbd>Tak</kbd>. Jeśli starsza wersja jest już zainstalowana, NVDA zaproponuje jej aktualizację.</li>
 <li>Uruchom ponownie NVDA, gdy o to poprosi.</li>
 </ol>
@@ -102,6 +102,12 @@ kbd { font-family: inherit; font-weight: bold; }
 <li>Ustawienia → Ogólne → „Katalog pobierania” i „Katalog tymczasowy” — ustaw na dysk z dużą ilością wolnego miejsca; inaczej pojawia się ostrzeżenie o braku miejsca.</li>
 </ul>
 
+<h2 id="okno-pobierania">Okno pobierania serialu lub filmu</h2>
+<ul>
+<li>Lista odcinków: strzałki w górę i w dół przechodzą po odcinkach, <kbd>Spacja</kbd> zaznacza lub odznacza odcinek, strzałka w prawo rozwija sezon (np. „Ekstra”). Dodatek czyta numer i tytuł odcinka z czasem trwania, po Spacji mówi „zaznaczone” albo „niezaznaczone” i licznik, np. „Wybrano 2 z 19”.</li>
+<li>Język audio i Napisy: rozwiń listę <kbd>Alt+Strzałka w dół</kbd>, wybierz język strzałkami, zaznacz go <kbd>Spacją</kbd> (można zaznaczyć kilka), zamknij <kbd>Escape</kbd> lub <kbd>Enter</kbd>. Nazwy języków są czytane po polsku.</li>
+</ul>
+
 <h2 id="ograniczenia">Znane ograniczenia</h2>
 <ul>
 <li>Przy kilku pobranych filmach nazwy wierszy na zakładce Downloaded mogą nie odpowiadać kolejności na ekranie. Okno <kbd>Ctrl+Shift+L</kbd> działa niezależnie od tego.</li>
@@ -109,10 +115,16 @@ kbd { font-family: inherit; font-weight: bold; }
 <li>Komórki szablonu nazwy pliku w Ustawieniach → Preferencje nie mają tekstu.</li>
 <li>Pasek zakładek przeglądarki (Official Site, Hot Promotion, Forum) nie jest dostępny z klawiatury.</li>
 <li>W StreamFab <kbd>Ctrl+Shift+Strzałki</kbd> nie zaznaczają tekstu słowami, bo zajmuje je dodatek (można to zmienić w Zdarzeniach wejścia).</li>
-<li>Zakładka Downloading w trakcie pobierania i okno opcji pobierania po analizie filmu nie zostały jeszcze w pełni sprawdzone.</li>
+<li>Zakładka Downloading w trakcie pobierania nie została jeszcze w pełni sprawdzona.</li>
 </ul>
 
 <h2 id="zmiany">Historia zmian</h2>
+<h3>0.4.0</h3>
+<ul>
+<li>Okno pobierania: odcinki czytane bez angielskich dopisków („Checked”, „Collapsed”), z czasem trwania; dodatek pilnuje, żeby NVDA czytało odcinek, na którym naprawdę jest fokus.</li>
+<li>Spacja na odcinku lub języku ogłasza „zaznaczone”/„niezaznaczone” i licznik wybranych odcinków.</li>
+<li>Polskie nazwy list: Język audio, Napisy, Rozdzielczość, harmonogram; polskie nazwy języków na liście.</li>
+</ul>
 <h3>0.3.2</h3>
 <ul><li>Dokumentacja dostępna z Menedżera dodatków; paczka instalacyjna.</li></ul>
 <h3>0.3.1</h3>
