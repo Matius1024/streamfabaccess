@@ -1099,7 +1099,7 @@ class AppModule(appModuleHandler.AppModule):
 	def _closeCombo(self, combo):
 		try:
 			pat = combo.expandPattern()
-			if pat.CurrentExpandCollapseState != 0  # 0 = zwinięta:
+			if pat.CurrentExpandCollapseState != 0:
 				pat.Collapse()
 		except Exception:
 			log.debugWarning("StreamFab dostęp: nie udało się zwinąć listy języków", exc_info=True)
