@@ -20,6 +20,7 @@ Wymagany NVDA 2024.1 lub nowszy (testowano z NVDA 2026.3 i StreamFab 7.0.5.6 na 
 - Ostrzega przed przyciskiem „Instaluj w tle” w oknie reklamy UniFab.
 - W oknie pobierania serialu czyta odcinki bez angielskich dopisków („Checked”, „Collapsed”), z czasem trwania, i pilnuje, żeby NVDA czytało odcinek, na którym naprawdę jest fokus.
 - Po Spacji na odcinku lub języku mówi „zaznaczone” / „niezaznaczone” i licznik, np. „Wybrano 2 z 19”.
+- Obsługuje logowanie (autoryzację komputera): nazywa pola E-mail i Hasło, ogłasza komunikaty („Weryfikowanie informacji o koncie”, błędy), pozwala kliknąć napisy-linki (Zaloguj przez Google, Zarejestruj, Zapomniane hasło). Gdy po zalogowaniu okno Licencja otworzy się pod oknem logowania, dodatek sam przenosi do niego klawiaturę — trzeba je zamknąć (Ctrl+Shift+C), żeby logowanie się zakończyło.
 - Nadaje polskie nazwy listom Język audio, Napisy, Rozdzielczość i tłumaczy nazwy języków na liście (np. „polski EAC3 5.1”).
 
 ## Skróty (działają w oknie StreamFab)
@@ -35,6 +36,7 @@ Wymagany NVDA 2024.1 lub nowszy (testowano z NVDA 2026.3 i StreamFab 7.0.5.6 na 
 | Ctrl+Shift+Strzałka w prawo / w lewo | Przeglądaj wszystkie przyciski okna |
 | Ctrl+Shift+Enter | Naciśnij wybrany przycisk |
 | Ctrl+Shift+R | Przeczytaj treść okna |
+| Ctrl+Shift+W | Przejdź do kolejnego otwartego okna StreamFab (gdy jedno zasłania drugie) |
 | Ctrl+Shift+A | Włącz / wyłącz ogłaszanie zmian |
 | Ctrl+Shift+H | Lista skrótów |
 | Spacja (w oknie pobierania serialu) | Zaznacz / odznacz odcinek lub język i usłysz nowy stan |

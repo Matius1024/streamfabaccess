@@ -50,7 +50,30 @@ NAMES = {
 	"pushButton_ImageLink": "Reklama, link",
 	"listView_youtubePopularSites": "Popularne witryny",
 	"treeview_task_queue": "Pobrane filmy",
+	"m_lineEditEmail": "E-mail",
+	"m_lineEditPassword": "Hasło",
+	"pushButtonLeftClose": "Zamknij",
 }
+# Angielskie napisy okna logowania.
+TRANSLATE = {
+	"LOGIN": "Zaloguj",
+	"SIGN UP": "Zarejestruj",
+	"Sign in with Google": "Zaloguj przez Google",
+	"or": "lub",
+}
+# Napisy okna logowania, które działają jak linki (to zwykłe etykiety, więc dodatek klika je myszą).
+LINK_LABELS = {
+	"label_googleText": "Zaloguj przez Google",
+	"labelNoAccount": "Nie masz konta? Zarejestruj tutaj",
+	"labelForgot": "Zapomniane hasło?",
+}
+# Etykiety z komunikatem stanu w oknach (np. „Weryfikowanie informacji o koncie”) — ich zmiany ogłaszamy.
+MESSAGE_LABELS = ("m_labelMessage", "labelMessage", "label_message", "label_errorTip", "label_tip")
+# Okna, które zostają pod spodem, gdy StreamFab otworzy kolejne (np. Licencję po zalogowaniu).
+# Okno o niższej wadze ustępuje każdemu innemu.
+BACKGROUND_RANK = {"WebSitePopupDlg": 0, "QRegister": 1}
+# Początki AutomationId okien StreamFab, w których nadajemy nazwy elementom.
+OWN_PREFIXES = ("StreamMainWnd", "CFabDialogClass")
 # Pola okna pobierania (po analizie filmu/serialu), które StreamFab nazywa po angielsku albo wcale.
 # Te nazwy zastępują nazwę programu zawsze.
 FORCE_NAMES = {
@@ -102,7 +125,7 @@ ITEM_ROLES = (
 OK_BUTTONS = ("pushButton_ok", "pushButton_OK", "pushButton_confirm", "pushButton_yes", "btn_ok", "btnOk",
 	"pushButtonOk", "StreamMessageBox_PrimaryButton")
 CANCEL_BUTTONS = ("pushButton_cancel", "pushButton_Cancel", "pushButton_no", "btn_cancel", "btnCancel", "pushButtonCancel")
-CLOSE_BUTTONS = ("pushButton_dialogClose", "pushButton_close", "pushButtonClose", "btn_close")
+CLOSE_BUTTONS = ("pushButtonLeftClose", "pushButton_dialogClose", "pushButton_close", "pushButtonClose", "btn_close")
 OK_NAMES = ("ok", "tak", "yes", "potwierdź", "confirm", "zapisz", "save")
 CANCEL_NAMES = ("cancel", "anuluj", "nie", "no")
 WINDOW_TYPE = 50032
@@ -117,6 +140,9 @@ SKIP_CLASSES = ("CefBrowserWindow", "WebSiteView")
 DIALOG_TITLES = {
 	"MyAccountDlg": "Menu Moje konto. Tab przechodzi po pozycjach, Escape zamyka",
 	"UniFabIntroduceDlg": "Okno reklamy UniFab. Uwaga: przycisk Instaluj w tle instaluje inny program",
+	"QRegister": "Okno logowania StreamFab",
+	"WebSitePopupDlg": "Okno reklamy StreamFab, Ctrl+Shift+C zamyka",
+	"LicenseInfoOptionsDlg": "Okno Licencja, Ctrl+Shift+C zamyka",
 }
 POPUP_CLASSES = ("ComboBox", "QMenu", "Menu", "ToolTip", "TipLabel", "Popup", "QListView", "Completer")
 # Okno dialogowe z większą liczbą tekstów (np. Ustawienia) czytamy tylko z tytułu.
@@ -287,6 +313,7 @@ class Worker(threading.Thread):
 		self._dialogKey = None
 		self._cycle = None  # (identyfikator okna, indeks)
 		self._lastCount = None  # ostatnio przeczytany licznik zaznaczonych odcinków
+		self._message = None  # ostatni komunikat stanu okna (np. logowania)
 		self.onDialogChange = None  # wywoływane w głównym wątku NVDA: (czy jest otwarte okno)
 
 	# --- pętla ---
@@ -480,17 +507,106 @@ class Worker(threading.Thread):
 			except comtypes.COMError:
 				return
 		if key == self._dialogKey:
+			self.watchMessage(dlg)
 			return
 		self._dialogKey = key
 		self._cycle = None
 		self._lastCount = None
+		self._message = None
 		if self.onDialogChange:
 			queueHandler.queueFunction(queueHandler.eventQueue, self.onDialogChange, bool(dlg))
-		if not dlg or not self.autoAnnounce:
+		if not dlg:
 			return
 		time.sleep(0.4)  # niech okno się dorysuje
+		# Nowe okno otwarte pod innym (np. Licencja pod oknem logowania): klawiatura została
+		# w starym oknie, więc przenosimy ją do nowego — bez tego nie da się przejść dalej.
+		moved = self.bringToFront(dlg, onlyFromBackground=True)
+		self.watchMessage(dlg, announce=False)
+		if not self.autoAnnounce:
+			return
 		self.taskReadDialog(dlg, auto=True)
+		if moved:
+			say("Logowanie czeka na zamknięcie tego okna" if self.hasBackground("QRegister") else "Przeniesiono do tego okna")
 		self.taskHiddenFocus(dlg, delay=0)
+
+	def watchMessage(self, dlg, announce=True):
+		"""Ogłasza zmiany komunikatu stanu w oknie (np. „Weryfikowanie informacji o koncie”, błąd hasła)."""
+		if not dlg:
+			return
+		try:
+			el = self.find(dlg, lambda e: e.CurrentControlType == TEXT_TYPE and self.last(e) in MESSAGE_LABELS)
+			text = (el.CurrentName or "").strip().rstrip(".") if el else ""
+		except comtypes.COMError:
+			return
+		prev, self._message = self._message, text
+		if announce and text and text != prev and self.autoAnnounce:
+			say(text)
+
+	def nativeHandle(self, el):
+		try:
+			return el.CurrentNativeWindowHandle or 0
+		except comtypes.COMError:
+			return 0
+
+	def hasBackground(self, cls):
+		return any(self.className(d) == cls for d in self.allDialogs())
+
+	@staticmethod
+	def className(el):
+		try:
+			return el.CurrentClassName or ""
+		except comtypes.COMError:
+			return ""
+
+	def bringToFront(self, dlg, onlyFromBackground=False):
+		"""Ustawia okno na wierzchu i daje fokus jego pierwszemu przyciskowi.
+		onlyFromBackground: tylko gdy klawiatura jest w oknie, które zostaje pod spodem (logowanie, reklama)."""
+		hwnd = self.nativeHandle(dlg)
+		fg = winUser.getForegroundWindow()
+		if not hwnd or fg == hwnd:
+			return False
+		if onlyFromBackground:
+			try:
+				fgEl = self.uia.ElementFromHandle(fg)
+			except comtypes.COMError:
+				return False
+			if not fgEl or fgEl.CurrentProcessId != self.pid or self.className(fgEl) not in BACKGROUND_RANK:
+				return False
+		user32 = ctypes.windll.user32
+		user32.ShowWindow(hwnd, 5)  # SW_SHOW
+		user32.SetForegroundWindow(hwnd)
+		time.sleep(0.2)
+		try:
+			target = None
+			for b in self.dialogButtons(dlg):
+				if b.CurrentIsKeyboardFocusable and b.CurrentControlType in BUTTON_TYPES:
+					target = b
+					if self.last(b) in CLOSE_BUTTONS or self.last(b) in OK_BUTTONS:
+						break
+			(target or dlg).SetFocus()
+		except comtypes.COMError:
+			pass
+		return True
+
+	def taskSwitchWindow(self):
+		"""Przechodzi do kolejnego otwartego okna StreamFab (np. gdy jedno zasłania drugie)."""
+		dialogs = self.allDialogs()
+		main = self.mainWindow()
+		if main:
+			dialogs.insert(0, main)
+		if not dialogs:
+			say("Brak okien StreamFab")
+			return
+		fg = winUser.getForegroundWindow()
+		handles = [self.nativeHandle(d) for d in dialogs]
+		idx = (handles.index(fg) + 1) % len(dialogs) if fg in handles else len(dialogs) - 1
+		dlg = dialogs[idx]
+		self.bringToFront(dlg)
+		if dlg is main:
+			say("Okno główne StreamFab, %d z %d" % (idx + 1, len(dialogs)))
+		else:
+			self.taskReadDialog(dlg, auto=True)
+			say("%d z %d" % (idx + 1, len(dialogs)))
 
 	def taskHiddenFocus(self, dlg=None, delay=0.15):
 		"""Niektóre okna StreamFab (np. menu My Account) przyjmują klawiaturę, ale nie zgłaszają fokusu.
@@ -590,6 +706,9 @@ class Worker(threading.Thread):
 	def press(self, el):
 		"""Naciska element. Invoke wykonujemy w osobnym wątku, bo Qt nie wraca z niego,
 		dopóki otwarte przez przycisk okno modalne jest otwarte."""
+		if self.last(el) in LINK_LABELS:
+			self.click(el)  # etykieta Qt reaguje tylko na kliknięcie myszą
+			return
 		try:
 			pat = el.GetCurrentPattern(UIA.UIA_InvokePatternId)
 			inv = pat.QueryInterface(UIA.IUIAutomationInvokePattern) if pat else None
@@ -631,24 +750,36 @@ class Worker(threading.Thread):
 		edit.SetFocus()
 
 	# --- okna dialogowe ---
-	def activeDialog(self):
-		"""Najwyżej położone widoczne okno dialogowe StreamFab (bez okna głównego i przycisku pobierania)."""
-		found = None
+	def allDialogs(self):
+		"""Widoczne okna dialogowe StreamFab (bez okna głównego i przycisku pobierania), w kolejności drzewa UIA.
+		Okno otwarte z innego okna (np. logowanie z reklamy) jest jego dzieckiem i trafia na listę zaraz po nim."""
+		found = []
+
+		def usable(el):
+			aid = el.CurrentAutomationId or ""
+			return el.CurrentControlType == WINDOW_TYPE and not el.CurrentIsOffscreen \
+				and not aid.endswith(".pushButton_operate") and not self.isPopup(el)
+
 		for w in self.topWindows():
 			try:
-				aid = w.CurrentAutomationId or ""
-				if w.CurrentIsOffscreen or aid.endswith(".pushButton_operate") or self.isPopup(w):
+				if not usable(w):
 					continue
-				if aid == "StreamMainWnd":
-					for ch in self.children(w):
-						if ch.CurrentControlType == WINDOW_TYPE and not ch.CurrentIsOffscreen \
-								and not (ch.CurrentAutomationId or "").endswith(".pushButton_operate") \
-								and not self.isPopup(ch):
-							found = ch
-				else:
-					found = w
+				if w.CurrentAutomationId != "StreamMainWnd":
+					found.append(w)
+				found.extend(ch for ch in self.children(w) if usable(ch))
 			except comtypes.COMError:
 				continue
+		return found
+
+	def activeDialog(self):
+		"""Okno, które teraz czeka na użytkownika: ostatnie z listy, ale okna zostające pod spodem
+		(reklama, logowanie w trakcie weryfikacji) ustępują każdemu innemu."""
+		found = None
+		best = -1
+		for d in self.allDialogs():
+			rank = BACKGROUND_RANK.get(self.className(d), 9)
+			if rank >= best:
+				best, found = rank, d
 		return found
 
 	@staticmethod
@@ -658,14 +789,17 @@ class Worker(threading.Thread):
 		return any(p in cls for p in POPUP_CLASSES)
 
 	def dialogButtons(self, dlg):
-		return self.collect(dlg, lambda e: e.CurrentControlType in BUTTON_TYPES and e.CurrentIsEnabled)
+		return self.collect(dlg, lambda e: e.CurrentIsEnabled and (e.CurrentControlType in BUTTON_TYPES
+			or (e.CurrentControlType == TEXT_TYPE and self.last(e) in LINK_LABELS)))
 
 	def buttonName(self, el):
-		name = el.CurrentName or ""
+		last = self.last(el)
+		if last in LINK_LABELS:
+			return LINK_LABELS[last] + ", link"
+		name = (el.CurrentName or "").strip()
 		if not name:
-			last = self.last(el)
 			name = NAMES.get(last) or humanize(last)
-		return name
+		return TRANSLATE.get(name, name)
 
 	def taskDialogButton(self, groups, names, label):
 		dlg = self.activeDialog()
@@ -871,9 +1005,16 @@ class AppModule(appModuleHandler.AppModule):
 			elif role in (controlTypes.Role.COMBOBOX, controlTypes.Role.EDITABLETEXT):
 				self._nameFromLabel(obj)
 			return
-		if not aid.startswith("StreamMainWnd"):
+		if not aid.startswith(OWN_PREFIXES):
 			return
 		last = aid.rsplit(".", 1)[-1]
+		if last in LINK_LABELS:
+			obj.name = LINK_LABELS[last]
+			obj.description = "link, Ctrl+Shift+strzałki i Ctrl+Shift+Enter"
+			return
+		if obj.name and obj.name.strip() in TRANSLATE:
+			obj.name = TRANSLATE[obj.name.strip()]
+			return
 		if last in FORCE_NAMES:
 			obj.name = FORCE_NAMES[last]
 			return
@@ -998,6 +1139,10 @@ class AppModule(appModuleHandler.AppModule):
 	def script_readDialog(self, gesture):
 		self.worker.tasks.put(self.worker.taskReadDialog)
 
+	@script(description="Przechodzi do kolejnego otwartego okna StreamFab", category=CATEGORY, gesture="kb:control+shift+w")
+	def script_switchWindow(self, gesture):
+		self.worker.tasks.put(self.worker.taskSwitchWindow)
+
 	@script(description="Czyta listę skrótów dodatku StreamFab dostęp", category=CATEGORY, gesture="kb:control+shift+h")
 	def script_help(self, gesture):
 		ui.message(
@@ -1005,6 +1150,6 @@ class AppModule(appModuleHandler.AppModule):
 			"Ctrl+Shift+L: lista pobranych filmów. Ctrl+Shift+A: ogłaszanie zmian i nowych okien. "
 			"W oknach dialogowych: Ctrl+Shift+O: OK. Ctrl+Shift+C: Anuluj lub Zamknij. "
 			"Ctrl+Shift+strzałka w prawo lub w lewo: przeglądanie przycisków. Ctrl+Shift+Enter: naciśnij wybrany. "
-			"Ctrl+Shift+R: przeczytaj okno. W oknie pobierania serialu Spacja zaznacza odcinek lub język. "
+			"Ctrl+Shift+R: przeczytaj okno. Ctrl+Shift+W: przejdź do kolejnego okna StreamFab. W oknie pobierania serialu Spacja zaznacza odcinek lub język. "
 			"Ctrl+Shift+H: ta pomoc."
 		)
