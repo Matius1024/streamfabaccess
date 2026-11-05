@@ -1093,8 +1093,11 @@ class AppModule(appModuleHandler.AppModule):
 		if not expanded:
 			gesture.send()
 			return
-		gesture.send()
-		core.callLater(150, self._closeCombo, combo)
+		# Alt+strzałka w górę zamyka listę tak, jak robi to sam Qt — klawiatura wraca na pole,
+		# więc Tab działa dalej (zwinięcie przez UIA zostawiało klawiaturę w ukrytej liście).
+		import keyboardHandler
+		keyboardHandler.KeyboardInputGesture.fromName("alt+upArrow").send()
+		core.callLater(200, self._closeCombo, combo)
 
 	def _closeCombo(self, combo):
 		try:
