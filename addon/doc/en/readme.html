@@ -97,6 +97,7 @@ kbd { font-family: inherit; font-weight: bold; }
 <p>Po udanym logowaniu StreamFab otwiera okno Licencja <em>pod</em> oknem logowania, a logowanie czeka, aż je zamkniesz. Dodatek sam przenosi klawiaturę do okna Licencja i mówi „Logowanie czeka na zamknięcie tego okna”. Zamknij je <kbd>Ctrl+Shift+C</kbd>; potem pojawi się komunikat „Ten komputer został pomyślnie zautoryzowany” — zamknij go <kbd>Ctrl+Shift+O</kbd>.</p>
 <h3>Odcinki i języki</h3>
 <p>W liście odcinków dodatek usuwa angielskie dopiski stanu (stan zaznaczenia i rozwinięcia podaje NVDA po polsku) i dodaje czas trwania odcinka. Po strzałce w górę lub w dół sprawdza, który odcinek naprawdę ma fokus, i jeśli NVDA zostało na poprzednim — przenosi je na właściwy. Po <kbd>Spacji</kbd> mówi „zaznaczone” albo „niezaznaczone” oraz licznik wybranych odcinków. Na rozwiniętej liście języków nazwy języków są tłumaczone na polski. <kbd>Spacja</kbd> jest przechwytywana tylko wtedy, gdy w StreamFab jest otwarte okno.</p>
+<p>Listy Język audio i Napisy to w StreamFab listy wielokrotnego wyboru, w których fokus dostaje ukryte pole tekstowe tylko do odczytu z kodami języków (np. „en,pl”). Dlatego NVDA czytało je jako „edycja tylko do odczytu”. Dodatek przedstawia je jako listę rozwijaną: podaje polską nazwę listy, wybrane języki po polsku (powtórzony język z licznikiem, np. „polski (4)”) i podpowiedź klawiszy. <kbd>Enter</kbd>, <kbd>Alt+Strzałka w dół</kbd>, <kbd>F4</kbd> i <kbd>Spacja</kbd> otwierają listę. Sam <kbd>Escape</kbd> zamykał listę tak, że klawiatura zostawała w ukrytej liście i <kbd>Tab</kbd> przestawał działać (trzeba było wyjść z okna <kbd>Alt+Tab</kbd>), dlatego w otwartej liście dodatek zamienia <kbd>Escape</kbd> na <kbd>Enter</kbd>, który zamyka ją poprawnie.</p>
 <h3>Lista pobranych filmów</h3>
 <p>Wiersze na zakładce Downloaded nie zawierają tekstu. Dodatek odczytuje tytuły i ścieżki plików z danych programu w folderze <code>%APPDATA%\StreamFab\StreamFab\localdata</code> (tylko odczyt — niczego tam nie zmienia).</p>
 <h3>Bezpieczeństwo</h3>
@@ -125,9 +126,23 @@ kbd { font-family: inherit; font-weight: bold; }
 <li>Pasek zakładek przeglądarki (Official Site, Hot Promotion, Forum) nie jest dostępny z klawiatury.</li>
 <li>W StreamFab <kbd>Ctrl+Shift+Strzałki</kbd> nie zaznaczają tekstu słowami, bo zajmuje je dodatek (można to zmienić w Zdarzeniach wejścia).</li>
 <li>Zakładka Downloading w trakcie pobierania nie została jeszcze w pełni sprawdzona.</li>
+<li>W rozwiniętej liście języków StreamFab nie zgłasza fokusu na poszczególnych językach — dodatek sam podaje NVDA język, na którym jest klawiatura.</li>
 </ul>
 
 <h2 id="zmiany">Historia zmian</h2>
+<h3>0.5.7</h3>
+<ul>
+<li>Listy Język audio i Napisy w oknie pobierania serialu: NVDA czyta je jako listę rozwijaną z nazwą i wybranymi językami po polsku (np. „Język audio, lista rozwijana, angielski, polski”), a nie jako „edycja tylko do odczytu, en,pl”. Powtórzone języki mają licznik, np. „polski (4)”.</li>
+<li>Listę otwiera <kbd>Enter</kbd>, <kbd>Alt+Strzałka w dół</kbd>, <kbd>F4</kbd> lub <kbd>Spacja</kbd>.</li>
+<li>Listę zamyka <kbd>Enter</kbd> lub <kbd>Escape</kbd>; potem <kbd>Tab</kbd> przechodzi dalej. Wcześniej <kbd>Escape</kbd> zawieszał okno (Tab nie działał).</li>
+<li>Podpowiedź na liście: „Alt+strzałka w dół lub Enter otwiera listę języków, Spacja zaznacza język, Enter lub Escape zamyka listę”.</li>
+<li>Wersje 0.5.1–0.5.6 były wersjami testowymi tych poprawek (nie były publikowane).</li>
+</ul>
+<h3>0.5.0</h3>
+<ul>
+<li>Okno logowania: nazwy pól E-mail i Hasło, przycisk Zaloguj, ogłaszanie komunikatów, klikanie napisów-linków (Zaloguj przez Google, Zarejestruj, Zapomniane hasło).</li>
+<li>Okno Licencja otwierane pod oknem logowania: dodatek przenosi do niego klawiaturę; <kbd>Ctrl+Shift+W</kbd> przełącza okna StreamFab.</li>
+</ul>
 <h3>0.4.1</h3>
 <ul><li>Uzupełniona dokumentacja i opis dodatku o obsługę okna pobierania serialu.</li></ul>
 <h3>0.4.0</h3>
