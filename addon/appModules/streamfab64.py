@@ -950,7 +950,7 @@ class MultiSelCombo(NVDAObjects.UIA.UIA):
 		return langValue(raw if isinstance(raw, str) else "")
 
 	def _get_description(self):
-		return "Alt+strzałka w dół lub Enter otwiera listę języków, Spacja zaznacza język, Escape zamyka listę"
+		return "Alt+strzałka w dół lub Enter otwiera listę języków, Spacja zaznacza język, Enter zamyka listę"
 
 	def _get_states(self):
 		states = set(super()._get_states())
@@ -1093,11 +1093,11 @@ class AppModule(appModuleHandler.AppModule):
 		if not expanded:
 			gesture.send()
 			return
-		# Tylko Alt+strzałka w górę — dokładnie to, co użytkownik robi ręcznie i co działa.
-		# Zwijanie przez UIA i ustawianie fokusu przez UIA psuło potem przechodzenie Tabem.
+		# Escape (i Alt+strzałka w górę) zawieszały okno — Tab przestawał działać.
+		# Enter zamyka listę czysto, więc Escape w otwartej liście wysyła Enter.
 		import keyboardHandler
 		self._lastCombo = None
-		keyboardHandler.KeyboardInputGesture.fromName("alt+upArrow").send()
+		keyboardHandler.KeyboardInputGesture.fromName("enter").send()
 		core.callLater(300, self._syncAfterClose)
 
 	def _syncAfterClose(self):

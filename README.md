@@ -22,7 +22,7 @@ Wymagany NVDA 2024.1 lub nowszy (testowano z NVDA 2026.3 i StreamFab 7.0.5.6 na 
 - Po Spacji na odcinku lub języku mówi „zaznaczone” / „niezaznaczone” i licznik, np. „Wybrano 2 z 19”.
 - Obsługuje logowanie (autoryzację komputera): nazywa pola E-mail i Hasło, ogłasza komunikaty („Weryfikowanie informacji o koncie”, błędy), pozwala kliknąć napisy-linki (Zaloguj przez Google, Zarejestruj, Zapomniane hasło). Gdy po zalogowaniu okno Licencja otworzy się pod oknem logowania, dodatek sam przenosi do niego klawiaturę — trzeba je zamknąć (Ctrl+Shift+C), żeby logowanie się zakończyło.
 - Nadaje polskie nazwy listom Język audio, Napisy, Rozdzielczość i tłumaczy nazwy języków na liście (np. „polski EAC3 5.1”).
-- Listy Język audio i Napisy są czytane jako listy rozwijane z wybranymi językami po polsku (np. „angielski, polski”), a nie jako „edycja tylko do odczytu, en,pl”. Otwiera je Alt+strzałka w dół, Enter, F4 albo Spacja.
+- Listy Język audio i Napisy są czytane jako listy rozwijane z wybranymi językami po polsku (np. „angielski, polski”), a nie jako „edycja tylko do odczytu, en,pl”. Otwiera je Alt+strzałka w dół, Enter, F4 albo Spacja, a zamyka Enter (Escape dodatek też zamienia na Enter, bo sam Escape zawieszał okno).
 
 ## Skróty (działają w oknie StreamFab)
 
