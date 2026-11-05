@@ -144,6 +144,7 @@ DIALOG_GESTURES = {
 	"kb:upArrow": "passNavKey",
 	"kb:downArrow": "passNavKey",
 	"kb:space": "toggleItem",
+	"kb:escape": "escape",
 }
 ITEM_ROLES = (
 	controlTypes.Role.TREEVIEWITEM,
@@ -958,12 +959,18 @@ class MultiSelCombo(NVDAObjects.UIA.UIA):
 		states.add(controlTypes.State.HASPOPUP)
 		return states
 
+	def expandPattern(self):
+		el = self.comboObj.UIAElement
+		return el.GetCurrentPattern(UIA.UIA_ExpandCollapsePatternId).QueryInterface(UIA.IUIAutomationExpandCollapsePattern)
+
 	def expand(self):
 		"""Otwiera listę języków przez UIA; gdy się nie da, wysyła Alt+strzałkę w dół."""
 		try:
-			el = self.comboObj.UIAElement
-			pat = el.GetCurrentPattern(UIA.UIA_ExpandCollapsePatternId).QueryInterface(UIA.IUIAutomationExpandCollapsePattern)
-			pat.Expand()
+			self.appModule._lastCombo = self
+		except Exception:
+			pass
+		try:
+			self.expandPattern().Expand()
 			return
 		except Exception:
 			log.debugWarning("StreamFab dostęp: Expand listy języków nie zadziałał", exc_info=True)
@@ -1003,6 +1010,7 @@ class AppModule(appModuleHandler.AppModule):
 		self.worker.onDialogChange = self._setDialogGestures
 		self.worker.start()
 		self._dialogGestures = False
+		self._lastCombo = None
 		self._lastStateEvent = 0.0
 		self._films = []
 		self._filmsStamp = None
@@ -1071,6 +1079,52 @@ class AppModule(appModuleHandler.AppModule):
 		pressed = time.monotonic()
 		gesture.send()
 		core.callLater(250, self._afterToggle, before, pressed)
+
+	def script_escape(self, gesture):
+		"""Escape w otwartej liście języków: StreamFab jej nie zamyka, więc zwijamy ją przez UIA
+		i oddajemy fokus polu Język audio / Napisy."""
+		combo = self._lastCombo
+		expanded = False
+		if combo is not None:
+			try:
+				expanded = combo.expandPattern().CurrentExpandCollapseState != 0  # 0 = zwinięta
+			except Exception:
+				self._lastCombo = None
+		if not expanded:
+			gesture.send()
+			return
+		gesture.send()
+		core.callLater(150, self._closeCombo, combo)
+
+	def _closeCombo(self, combo):
+		try:
+			pat = combo.expandPattern()
+			if pat.CurrentExpandCollapseState != 0  # 0 = zwinięta:
+				pat.Collapse()
+		except Exception:
+			log.debugWarning("StreamFab dostęp: nie udało się zwinąć listy języków", exc_info=True)
+		self._lastCombo = None
+		core.callLater(200, self._focusAfterClose, combo)
+
+	def _focusAfterClose(self, combo):
+		try:
+			h = UIAHandler.handler
+			el = h.clientObject.GetFocusedElementBuildCache(h.baseCacheRequest)
+			obj = NVDAObjects.UIA.UIA(UIAElement=el) if el else None
+		except Exception:
+			obj = None
+		if not obj or obj.processID != self.processID or obj.role in ITEM_ROLES:
+			# Qt nie oddał fokusu (albo UIA go nie zgłasza) — ustawiamy go na liście języków.
+			try:
+				combo.comboObj.UIAElement.SetFocus()
+				el = UIAHandler.handler.clientObject.GetFocusedElementBuildCache(UIAHandler.handler.baseCacheRequest)
+				obj = NVDAObjects.UIA.UIA(UIAElement=el) if el else combo
+			except Exception:
+				obj = combo
+			if obj.role in ITEM_ROLES:
+				obj = combo
+		if obj != api.getFocusObject() or isinstance(obj, MultiSelCombo):
+			eventHandler.queueEvent("gainFocus", obj)
 
 	def _afterToggle(self, before, pressed):
 		focus = api.getFocusObject()
