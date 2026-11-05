@@ -1093,40 +1093,22 @@ class AppModule(appModuleHandler.AppModule):
 		if not expanded:
 			gesture.send()
 			return
-		# Alt+strzałka w górę zamyka listę tak, jak robi to sam Qt — klawiatura wraca na pole,
-		# więc Tab działa dalej (zwinięcie przez UIA zostawiało klawiaturę w ukrytej liście).
+		# Tylko Alt+strzałka w górę — dokładnie to, co użytkownik robi ręcznie i co działa.
+		# Zwijanie przez UIA i ustawianie fokusu przez UIA psuło potem przechodzenie Tabem.
 		import keyboardHandler
-		keyboardHandler.KeyboardInputGesture.fromName("alt+upArrow").send()
-		core.callLater(200, self._closeCombo, combo)
-
-	def _closeCombo(self, combo):
-		try:
-			pat = combo.expandPattern()
-			if pat.CurrentExpandCollapseState != 0:
-				pat.Collapse()
-		except Exception:
-			log.debugWarning("StreamFab dostęp: nie udało się zwinąć listy języków", exc_info=True)
 		self._lastCombo = None
-		core.callLater(200, self._focusAfterClose, combo)
+		keyboardHandler.KeyboardInputGesture.fromName("alt+upArrow").send()
+		core.callLater(300, self._syncAfterClose)
 
-	def _focusAfterClose(self, combo):
+	def _syncAfterClose(self):
+		"""Tylko czytamy to, co Qt naprawdę ma w fokusie — niczego nie przestawiamy."""
 		try:
 			h = UIAHandler.handler
 			el = h.clientObject.GetFocusedElementBuildCache(h.baseCacheRequest)
 			obj = NVDAObjects.UIA.UIA(UIAElement=el) if el else None
 		except Exception:
-			obj = None
-		if not obj or obj.processID != self.processID or obj.role in ITEM_ROLES:
-			# Qt nie oddał fokusu (albo UIA go nie zgłasza) — ustawiamy go na liście języków.
-			try:
-				combo.comboObj.UIAElement.SetFocus()
-				el = UIAHandler.handler.clientObject.GetFocusedElementBuildCache(UIAHandler.handler.baseCacheRequest)
-				obj = NVDAObjects.UIA.UIA(UIAElement=el) if el else combo
-			except Exception:
-				obj = combo
-			if obj.role in ITEM_ROLES:
-				obj = combo
-		if obj != api.getFocusObject() or isinstance(obj, MultiSelCombo):
+			return
+		if obj and obj.processID == self.processID and obj != api.getFocusObject():
 			eventHandler.queueEvent("gainFocus", obj)
 
 	def _afterToggle(self, before, pressed):
