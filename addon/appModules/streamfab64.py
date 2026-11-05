@@ -105,6 +105,37 @@ LANGUAGES = {
 	"Spain": "Hiszpania", "France": "Francja", "Simplified": "uproszczony", "Traditional": "tradycyjny",
 	"Taiwan": "Tajwan", "Hong Kong": "Hongkong", "Forced": "wymuszone", "Audio Description": "audiodeskrypcja",
 }
+# Kody języków, którymi lista wyboru pokazuje wybrane ścieżki (np. "en,pl").
+LANG_CODES = {
+	"ar": "arabski", "bg": "bułgarski", "ca": "kataloński", "cs": "czeski", "da": "duński", "de": "niemiecki",
+	"el": "grecki", "en": "angielski", "es": "hiszpański", "et": "estoński", "fi": "fiński", "fil": "filipiński",
+	"fr": "francuski", "he": "hebrajski", "hi": "hindi", "hr": "chorwacki", "hu": "węgierski", "id": "indonezyjski",
+	"is": "islandzki", "it": "włoski", "ja": "japoński", "ko": "koreański", "lt": "litewski", "lv": "łotewski",
+	"ms": "malajski", "nb": "norweski", "no": "norweski", "nl": "niderlandzki", "pl": "polski", "pt": "portugalski",
+	"ro": "rumuński", "ru": "rosyjski", "sk": "słowacki", "sl": "słoweński", "sr": "serbski", "sv": "szwedzki",
+	"ta": "tamilski", "te": "telugu", "th": "tajski", "tl": "tagalski", "tr": "turecki", "uk": "ukraiński",
+	"vi": "wietnamski", "yue": "kantoński", "zh": "chiński", "cmn": "mandaryński",
+}
+
+
+def langValue(value):
+	"""„en,pl,pl” → „angielski, polski (2)”; nieznane kody zostają bez zmian."""
+	order, counts = [], {}
+	for code in (value or "").split(","):
+		code = code.strip()
+		if not code:
+			continue
+		base = code.replace("_", "-").split("-")[0].lower()
+		name = LANG_CODES.get(base, code)
+		if name not in counts:
+			order.append(name)
+			counts[name] = 0
+		counts[name] += 1
+	if not order:
+		return "nic nie wybrano"
+	return ", ".join(n if counts[n] == 1 else "%s (%d)" % (n, counts[n]) for n in order)
+
+
 _LANG_WORD = re.compile(r"\b(" + "|".join(sorted((re.escape(k) for k in LANGUAGES), key=len, reverse=True)) + r")\b")
 # Klawisze przechwytywane, gdy otwarte jest okno StreamFab (gest: nazwa skryptu).
 DIALOG_GESTURES = {
@@ -878,7 +909,93 @@ class Worker(threading.Thread):
 		say(". ".join([title] + texts))
 
 
+def uiaClass(obj):
+	el = obj.UIAElement
+	try:
+		return el.cachedClassName or ""
+	except Exception:
+		pass
+	try:
+		return el.CurrentClassName or ""
+	except Exception:
+		return ""
+
+
+class MultiSelCombo(NVDAObjects.UIA.UIA):
+	"""Lista wyboru języków (MuliSelCombox). Fokus dostaje jej wewnętrzne pole tekstowe
+	tylko do odczytu, więc NVDA mówiło „edycja tylko do odczytu, en,pl”.
+	Przedstawiamy całość jako listę rozwijaną z polskimi nazwami języków."""
+
+	role = controlTypes.Role.COMBOBOX
+
+	def _get_comboObj(self):
+		if uiaClass(self) == "MuliSelCombox":
+			return self
+		return self.parent or self
+
+	def _get_name(self):
+		combo = self.comboObj
+		aid = getattr(combo, "UIAAutomationId", "") or ""
+		last = aid.rsplit(".", 1)[-1]
+		if last in FORCE_NAMES:
+			return FORCE_NAMES[last]
+		return (combo.name if combo is not self else super()._get_name()) or "Wybór języków"
+
+	def _get_value(self):
+		try:
+			raw = self._getUIACacheablePropertyValue(UIA.UIA_ValueValuePropertyId)
+		except Exception:
+			raw = ""
+		return langValue(raw if isinstance(raw, str) else "")
+
+	def _get_description(self):
+		return "Alt+strzałka w dół lub Enter otwiera listę języków, Spacja zaznacza język, Escape zamyka listę"
+
+	def _get_states(self):
+		states = set(super()._get_states())
+		for s in (controlTypes.State.READONLY, controlTypes.State.EDITABLE, controlTypes.State.MULTILINE):
+			states.discard(s)
+		states.add(controlTypes.State.HASPOPUP)
+		return states
+
+	def expand(self):
+		"""Otwiera listę języków przez UIA; gdy się nie da, wysyła Alt+strzałkę w dół."""
+		try:
+			el = self.comboObj.UIAElement
+			pat = el.GetCurrentPattern(UIA.UIA_ExpandCollapsePatternId).QueryInterface(UIA.IUIAutomationExpandCollapsePattern)
+			pat.Expand()
+			return
+		except Exception:
+			log.debugWarning("StreamFab dostęp: Expand listy języków nie zadziałał", exc_info=True)
+		import keyboardHandler
+		keyboardHandler.KeyboardInputGesture.fromName("alt+downArrow").send()
+
+	def script_expand(self, gesture):
+		self.expand()
+
+	__gestures = {
+		"kb:enter": "expand",
+		"kb:alt+downArrow": "expand",
+		"kb:f4": "expand",
+	}
+
+
 class AppModule(appModuleHandler.AppModule):
+
+	def chooseNVDAObjectOverlayClasses(self, obj, clsList):
+		if not isinstance(obj, NVDAObjects.UIA.UIA):
+			return
+		cls = uiaClass(obj)
+		if cls == "MuliSelCombox":
+			clsList.insert(0, MultiSelCombo)
+		elif cls == "ClickedLineEdit":
+			try:
+				walker = UIAHandler.handler.clientObject.RawViewWalker
+				parentEl = walker.GetParentElement(obj.UIAElement)
+				if parentEl and parentEl.CurrentClassName == "MuliSelCombox":
+					clsList.insert(0, MultiSelCombo)
+			except Exception:
+				pass
 
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
@@ -947,6 +1064,9 @@ class AppModule(appModuleHandler.AppModule):
 	def script_toggleItem(self, gesture):
 		"""Spacja na odcinku lub języku: Qt zmienia zaznaczenie bez komunikatu, więc go dopowiadamy."""
 		focus = api.getFocusObject()
+		if isinstance(focus, MultiSelCombo):
+			focus.expand()
+			return
 		before = self._checked(focus) if focus.role in ITEM_ROLES else None
 		pressed = time.monotonic()
 		gesture.send()
@@ -988,7 +1108,7 @@ class AppModule(appModuleHandler.AppModule):
 
 	def event_NVDAObject_init(self, obj):
 		aid = getattr(obj, "UIAAutomationId", None)
-		if aid is None:
+		if aid is None or isinstance(obj, MultiSelCombo):
 			return
 		role = obj.role
 		if role in ITEM_ROLES and obj.name:
