@@ -950,7 +950,7 @@ class MultiSelCombo(NVDAObjects.UIA.UIA):
 		return langValue(raw if isinstance(raw, str) else "")
 
 	def _get_description(self):
-		return "Alt+strzałka w dół lub Enter otwiera listę języków, Spacja zaznacza język, Enter zamyka listę"
+		return "Alt+strzałka w dół lub Enter otwiera listę języków, Spacja zaznacza język, Enter lub Escape zamyka listę"
 
 	def _get_states(self):
 		states = set(super()._get_states())
