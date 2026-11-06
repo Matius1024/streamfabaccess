@@ -253,6 +253,79 @@ def readDownloadedFilms():
 	return films
 
 
+# --- kolejka pobierania (taskdata: obiekty JSON jeden po drugim) i log StreamFab ---
+TASKDATA = os.path.expandvars(r"%APPDATA%\StreamFab\StreamFab\taskdata")
+SF_LOG = os.path.expanduser(r"~\Documents\StreamFab\StreamFab\Log\StreamFab.log")
+_RE_BEGIN = re.compile(r"beginDownloadItem.*?strID: \"([0-9a-f-]{36})\"")
+_RE_FINISH = re.compile(r"emit sig_downloadFinished: success :(\d), .*?strID :([0-9a-f-]{36}), nErrorCode :(-?\d+), "
+	r"strErrorTextForTaskQueue :(.*?), strOutPath :(.*?)\"\s*$")
+
+
+def readQueueTasks():
+	"""Zwraca listę słowników zadań (id, tytuł, sezon, czas, serwis) z plików kolejki StreamFab."""
+	import json
+	tasks = []
+	try:
+		with open(os.path.join(TASKDATA, "task_index"), "r", encoding="utf-8", errors="replace") as f:
+			sites = [s.strip() for s in f.read().splitlines() if s.strip()]
+	except OSError:
+		sites = []
+	dec = json.JSONDecoder()
+	for site in sites:
+		try:
+			with open(os.path.join(TASKDATA, site), "r", encoding="utf-8", errors="replace") as f:
+				data = f.read()
+		except OSError:
+			continue
+		i, n = 0, len(data)
+		while i < n:
+			while i < n and data[i] in " \r\n\t,":
+				i += 1
+			if i >= n:
+				break
+			try:
+				obj, i = dec.raw_decode(data, i)
+			except ValueError:
+				break
+			if isinstance(obj, dict) and obj.get("strID"):
+				tasks.append({
+					"id": obj.get("strID", ""),
+					"title": obj.get("strTitle") or obj.get("strSeasonTitle") or "bez tytułu",
+					"time": obj.get("strTotaltime", ""),
+					"site": site,
+				})
+	return tasks
+
+
+def _fileTitle(path):
+	return os.path.splitext(os.path.basename(path.replace("\\", "/")))[0].replace("_", " ") if path else ""
+
+
+class QueueDialog(wx.Dialog):
+	"""Dostępna lista kolejki pobierania z tytułami i stanem (z plików i logu StreamFab)."""
+
+	def __init__(self, parent, header, items):
+		super().__init__(parent, title="StreamFab — kolejka pobierania")
+		sizer = wx.BoxSizer(wx.VERTICAL)
+		sizer.Add(wx.StaticText(self, label=header or "Brak informacji o stanie"), 0, wx.ALL, 5)
+		sizer.Add(wx.StaticText(self, label="&Zadania"), 0, wx.ALL, 5)
+		self.list = wx.ListBox(self, choices=items or ["Kolejka jest pusta"], size=(700, 300))
+		self.list.SetSelection(0)
+		sizer.Add(self.list, 1, wx.ALL | wx.EXPAND, 5)
+		b = wx.Button(self, wx.ID_CLOSE, "Zamknij")
+		b.Bind(wx.EVT_BUTTON, lambda e: self.Destroy())
+		sizer.Add(b, 0, wx.ALL, 5)
+		self.SetSizerAndFit(sizer)
+		self.Bind(wx.EVT_CHAR_HOOK, self.onKey)
+		self.list.SetFocus()
+
+	def onKey(self, evt):
+		if evt.GetKeyCode() == wx.WXK_ESCAPE:
+			self.Destroy()
+		else:
+			evt.Skip()
+
+
 class FilmsDialog(wx.Dialog):
 	"""Dostępna lista pobranych filmów: odtwarzanie i pokazywanie pliku w folderze."""
 
@@ -349,6 +422,14 @@ class Worker(threading.Thread):
 		self.onDialogChange = None  # wywoływane w głównym wątku NVDA: (czy jest otwarte okno)
 		self.busyName = None  # diagnostyka: co wątek właśnie robi
 		self.busySince = None
+		# śledzenie pobierania z logu StreamFab
+		self.logPos = None
+		self.titles = {}  # id zadania -> tytuł
+		self.taskStamp = None
+		self.results = {}  # id -> (sukces, tekst, tytuł)
+		self.finished = []  # ostatnio zakończone w tej sesji: (sukces, tytuł, tekst)
+		self.current = None  # (id, czas rozpoczęcia)
+		self.tasksCache = []
 
 	# --- pętla ---
 	def run(self):
@@ -516,7 +597,130 @@ class Worker(threading.Thread):
 		return pid.value == self.pid
 
 	# --- okresowe sprawdzanie ---
+	def refreshTitles(self):
+		try:
+			stamp = tuple(os.path.getmtime(os.path.join(TASKDATA, f)) for f in os.listdir(TASKDATA) if os.path.isfile(os.path.join(TASKDATA, f)))
+		except OSError:
+			stamp = None
+		if stamp == self.taskStamp:
+			return
+		self.taskStamp = stamp
+		self.tasksCache = readQueueTasks()
+		for t in self.tasksCache:
+			self.titles[t["id"]] = t["title"]
+
+	def watchLog(self):
+		"""Czyta nowe wiersze logu StreamFab i ogłasza początek i koniec pobierania każdego filmu."""
+		try:
+			size = os.path.getsize(SF_LOG)
+		except OSError:
+			return
+		first = self.logPos is None
+		if first:
+			self.logPos = max(0, size - 10 * 1024 * 1024)  # historia: ostatnie 10 MB, bez ogłaszania
+		elif size < self.logPos:
+			self.logPos = 0  # nowy plik logu
+		if size == self.logPos:
+			return
+		self.refreshTitles()
+		try:
+			with open(SF_LOG, "rb") as f:
+				f.seek(self.logPos)
+				data = f.read(size - self.logPos)
+		except OSError:
+			return
+		cut = data.rfind(b"\n")
+		if cut < 0:
+			return
+		self.logPos += cut + 1
+		for line in data[:cut].decode("utf-8", "replace").splitlines():
+			if "beginDownloadItem" not in line and "sig_downloadFinished" not in line:
+				continue
+			m = _RE_BEGIN.search(line)
+			if m:
+				tid = m.group(1)
+				self.current = (tid, time.monotonic())
+				if not first and self.autoAnnounce:
+					say("Pobieranie: " + self.titles.get(tid, "nowy film"))
+				continue
+			m = _RE_FINISH.search(line)
+			if m:
+				ok, tid, code, text, path = m.group(1) == "1", m.group(2), m.group(3), m.group(4), m.group(5)
+				title = self.titles.get(tid) or _fileTitle(path) or "film"
+				self.results[tid] = (ok, text, title)
+				if self.current and self.current[0] == tid:
+					self.current = None
+				if not first:
+					self.finished.append((ok, title, text))
+					del self.finished[:-30]
+					if self.autoAnnounce:
+						say(("Pobrano: " + title) if ok else ("Błąd pobierania: %s. %s" % (title, text)))
+
+	def currentProgress(self):
+		"""Opis trwającego pobierania: tytuł, czas i megabajty w folderze tymczasowym (outputTemp)."""
+		if not self.current:
+			return ""
+		tid, started = self.current
+		self.refreshTitles()
+		parts = ["Pobieranie: " + self.titles.get(tid, "film bez znanego tytułu")]
+		mins = int((time.monotonic() - started) // 60)
+		parts.append("trwa od %d min" % mins if mins else "trwa od niecałej minuty")
+		tmp = None
+		try:
+			with open(os.path.expandvars(r"%APPDATA%\StreamFab\StreamFab\StreamFab.ini"), "r", encoding="utf-8", errors="replace") as f:
+				for line in f:
+					if line.startswith("DVDFabTmpDir="):
+						tmp = line.split("=", 1)[1].strip()
+						break
+		except OSError:
+			pass
+		if tmp:
+			base = os.path.join(tmp, "outputTemp")
+			total = 0
+			try:
+				for site in os.listdir(base):
+					sd = os.path.join(base, site)
+					if not os.path.isdir(sd):
+						continue
+					for d in os.listdir(sd):
+						if d.endswith(tid):
+							for root, dirs, files in os.walk(os.path.join(sd, d)):
+								for fn in files:
+									try:
+										total += os.path.getsize(os.path.join(root, fn))
+									except OSError:
+										pass
+			except OSError:
+				pass
+			if total:
+				parts.append("pobrano %d MB" % (total // (1024 * 1024)))
+		return ", ".join(parts)
+
+	def queueSummary(self):
+		"""Nagłówek i wiersze dla okna kolejki pobierania (wywoływane w wątku roboczym)."""
+		self.taskStamp = None
+		self.refreshTitles()
+		state = self.readState(force=True)
+		header = ". ".join(p for p in list(state[:2]) + [self.currentProgress()] if p)
+		items = []
+		for t in self.tasksCache:
+			res = self.results.get(t["id"])
+			if self.current and self.current[0] == t["id"]:
+				stan = "pobieranie trwa"
+			elif res and not res[0]:
+				stan = "błąd: " + res[1]
+			elif res and res[0]:
+				stan = "pobrano"
+			else:
+				stan = "czeka"
+			items.append("%s, %s, %s, %s" % (t["title"], t["time"] or "czas nieznany", t["site"], stan))
+		for ok, title, text in reversed(self.finished):
+			if ok:
+				items.append("Zakończone w tej sesji: pobrano %s" % title)
+		return header, items
+
 	def poll(self):
+		self.watchLog()
 		if not self.isForeground():
 			return
 		self.checkDialog()
@@ -724,7 +928,7 @@ class Worker(threading.Thread):
 		log.info("StreamFab dostęp: taskStatus start, etykiety=%d" % len(self._labels))
 		status, queueText, enabled = self.readState(force=True)
 		log.info("StreamFab dostęp: taskStatus stan=%r kolejka=%r przycisk=%r" % (status, queueText, enabled))
-		parts = [p for p in (status, queueText) if p]
+		parts = [p for p in (status, queueText, self.currentProgress()) if p]
 		if enabled is True:
 			parts.append("przycisk Pobierz wideo aktywny")
 		elif enabled is False:
@@ -1243,6 +1447,10 @@ class AppModule(appModuleHandler.AppModule):
 			return
 		if not parentId.endswith("treeview_task_queue"):
 			return
+		if "pageDownloading" in parentId:
+			# ta sama lista na karcie Downloading pokazuje kolejkę, nie pobrane filmy
+			obj.name = "Wiersz kolejki pobierania. Ctrl+Shift+K: lista kolejki z tytułami i stanem"
+			return
 		try:
 			row = obj._getUIACacheablePropertyValue(UIA.UIA_GridItemRowPropertyId)
 		except Exception:
@@ -1291,6 +1499,22 @@ class AppModule(appModuleHandler.AppModule):
 		d.Raise()
 		gui.mainFrame.postPopup()
 
+	@script(description="Otwiera kolejkę pobierania z tytułami i stanem (czeka, trwa, błąd)", category=CATEGORY, gesture="kb:control+shift+k")
+	def script_queue(self, gesture):
+		w = self.worker
+
+		def task():
+			header, items = w.queueSummary()
+
+			def show():
+				gui.mainFrame.prePopup()
+				d = QueueDialog(gui.mainFrame, header, items)
+				d.Show()
+				d.Raise()
+				gui.mainFrame.postPopup()
+			wx.CallAfter(show)
+		w.tasks.put(task)
+
 	@script(description="Naciska OK w otwartym oknie dialogowym", category=CATEGORY, gesture="kb:control+shift+o")
 	def script_dialogOk(self, gesture):
 		self.worker.tasks.put(lambda: self.worker.taskDialogButton((OK_BUTTONS,), OK_NAMES, "OK"))
@@ -1323,7 +1547,7 @@ class AppModule(appModuleHandler.AppModule):
 	def script_help(self, gesture):
 		ui.message(
 			"Ctrl+Shift+D: pobierz wideo. Ctrl+Shift+S: stan pobierania. Ctrl+L: pole adresu. "
-			"Ctrl+Shift+L: lista pobranych filmów. Ctrl+Shift+A: ogłaszanie zmian i nowych okien. "
+			"Ctrl+Shift+L: lista pobranych filmów. Ctrl+Shift+K: kolejka pobierania. Ctrl+Shift+A: ogłaszanie zmian i nowych okien. "
 			"W oknach dialogowych: Ctrl+Shift+O: OK. Ctrl+Shift+C: Anuluj lub Zamknij. "
 			"Ctrl+Shift+strzałka w prawo lub w lewo: przeglądanie przycisków. Ctrl+Shift+Enter: naciśnij wybrany. "
 			"Ctrl+Shift+R: przeczytaj okno. Ctrl+Shift+W: przejdź do kolejnego okna StreamFab. W oknie pobierania serialu Spacja zaznacza odcinek lub język. "

@@ -32,6 +32,7 @@ Wymagany NVDA 2024.1 lub nowszy (testowano z NVDA 2026.3 i StreamFab 7.0.5.6 na 
 | Ctrl+Shift+S | Przeczytaj stan pobierania i kolejkę |
 | Ctrl+L | Przejdź do pola adresu przeglądarki StreamFab |
 | Ctrl+Shift+L | Lista pobranych filmów |
+| Ctrl+Shift+K | Kolejka pobierania: tytuły, czas trwania i stan (czeka, trwa, błąd) |
 | Ctrl+Shift+O | OK w otwartym oknie |
 | Ctrl+Shift+C | Anuluj (lub Zamknij) w otwartym oknie |
 | Ctrl+Shift+Strzałka w prawo / w lewo | Przeglądaj wszystkie przyciski okna |

@@ -61,6 +61,7 @@ kbd { font-family: inherit; font-weight: bold; }
 <tr><td><kbd>Ctrl+Shift+S</kbd></td><td>Czyta stan pobierania, kolejkę zadań i to, czy przycisk pobierania jest aktywny.</td></tr>
 <tr><td><kbd>Ctrl+L</kbd></td><td>Przenosi fokus do pola adresu przeglądarki StreamFab. Wpisz adres i naciśnij Enter.</td></tr>
 <tr><td><kbd>Ctrl+Shift+L</kbd></td><td>Otwiera okno z listą pobranych filmów: Odtwórz, Pokaż w folderze, Kopiuj ścieżkę.</td></tr>
+<tr><td><kbd>Ctrl+Shift+K</kbd></td><td>Otwiera okno kolejki pobierania: tytuł, czas trwania, serwis i stan każdego zadania (czeka, pobieranie trwa, błąd z opisem). Na górze stan pobierania i ile megabajtów już pobrano.</td></tr>
 <tr><td><kbd>Ctrl+Shift+A</kbd></td><td>Włącza lub wyłącza automatyczne ogłaszanie zmian stanu i nowych okien (domyślnie włączone).</td></tr>
 <tr><td><kbd>Ctrl+Shift+H</kbd></td><td>Czyta listę skrótów.</td></tr>
 </table>
@@ -125,11 +126,22 @@ kbd { font-family: inherit; font-weight: bold; }
 <li>Komórki szablonu nazwy pliku w Ustawieniach → Preferencje nie mają tekstu.</li>
 <li>Pasek zakładek przeglądarki (Official Site, Hot Promotion, Forum) nie jest dostępny z klawiatury.</li>
 <li>W StreamFab <kbd>Ctrl+Shift+Strzałki</kbd> nie zaznaczają tekstu słowami, bo zajmuje je dodatek (można to zmienić w Zdarzeniach wejścia).</li>
-<li>Zakładka Downloading w trakcie pobierania nie została jeszcze w pełni sprawdzona.</li>
+<li>Wiersze na zakładce Downloading są rysowane bez tekstu i nie dostają fokusu. Tytuły i stan zadań czyta okno <kbd>Ctrl+Shift+K</kbd>. Procentu postępu StreamFab nigdzie nie podaje tekstem — dodatek podaje zamiast tego, ile megabajtów już pobrano.</li>
 <li>W rozwiniętej liście języków StreamFab nie zgłasza fokusu na poszczególnych językach — dodatek sam podaje NVDA język, na którym jest klawiatura.</li>
 </ul>
 
 <h2 id="zmiany">Historia zmian</h2>
+<h3>0.5.9</h3>
+<ul>
+<li>Nowy skrót <kbd>Ctrl+Shift+K</kbd>: okno kolejki pobierania z tytułami, czasem trwania i stanem zadań (czeka, trwa, błąd z opisem StreamFab).</li>
+<li>Dodatek ogłasza początek pobierania i jego koniec: „Pobrano: tytuł” albo „Błąd pobierania: tytuł” z przyczyną. Działa też, gdy StreamFab jest w tle.</li>
+<li><kbd>Ctrl+Shift+S</kbd> podaje też tytuł trwającego pobierania, od ilu minut trwa i ile megabajtów pobrano.</li>
+<li>Poprawka: wiersze na zakładce Downloading nie są już błędnie nazywane tytułami pobranych filmów.</li>
+</ul>
+<h3>0.5.8</h3>
+<ul>
+<li>Diagnostyka <kbd>Ctrl+Shift+S</kbd>: komunikat, gdy dodatek czeka na odpowiedź StreamFab.</li>
+</ul>
 <h3>0.5.7</h3>
 <ul>
 <li>Listy Język audio i Napisy w oknie pobierania serialu: NVDA czyta je jako listę rozwijaną z nazwą i wybranymi językami po polsku (np. „Język audio, lista rozwijana, angielski, polski”), a nie jako „edycja tylko do odczytu, en,pl”. Powtórzone języki mają licznik, np. „polski (4)”.</li>
