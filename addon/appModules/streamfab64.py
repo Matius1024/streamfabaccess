@@ -347,6 +347,8 @@ class Worker(threading.Thread):
 		self._lastCount = None  # ostatnio przeczytany licznik zaznaczonych odcinków
 		self._message = None  # ostatni komunikat stanu okna (np. logowania)
 		self.onDialogChange = None  # wywoływane w głównym wątku NVDA: (czy jest otwarte okno)
+		self.busyName = None  # diagnostyka: co wątek właśnie robi
+		self.busySince = None
 
 	# --- pętla ---
 	def run(self):
@@ -364,6 +366,8 @@ class Worker(threading.Thread):
 					task = self.tasks.get(timeout=1.0)
 				except queue.Empty:
 					task = None
+				self.busyName = getattr(task, "__name__", "?") if task else "poll"
+				self.busySince = time.monotonic()
 				try:
 					if task:
 						task()
@@ -372,6 +376,8 @@ class Worker(threading.Thread):
 				except Exception:
 					log.warning("StreamFab dostęp: błąd UIA", exc_info=True)
 					self._labels.clear()
+				finally:
+					self.busySince = None
 		except Exception:
 			log.error("StreamFab dostęp: nie udało się uruchomić wątku UIA", exc_info=True)
 		finally:
@@ -715,7 +721,9 @@ class Worker(threading.Thread):
 
 	# --- polecenia ze skrótów ---
 	def taskStatus(self):
+		log.info("StreamFab dostęp: taskStatus start, etykiety=%d" % len(self._labels))
 		status, queueText, enabled = self.readState(force=True)
+		log.info("StreamFab dostęp: taskStatus stan=%r kolejka=%r przycisk=%r" % (status, queueText, enabled))
 		parts = [p for p in (status, queueText) if p]
 		if enabled is True:
 			parts.append("przycisk Pobierz wideo aktywny")
@@ -1253,7 +1261,16 @@ class AppModule(appModuleHandler.AppModule):
 
 	@script(description="Czyta stan pobierania i kolejkę zadań", category=CATEGORY, gesture="kb:control+shift+s")
 	def script_status(self, gesture):
-		self.worker.tasks.put(self.worker.taskStatus)
+		w = self.worker
+		since = w.busySince
+		busy = (time.monotonic() - since) if since else 0.0
+		log.info("StreamFab dostęp: Ctrl+Shift+S, wątek żywy=%s, zajęty %.1f s (%s), w kolejce=%d" % (w.is_alive(), busy, w.busyName, w.tasks.qsize()))
+		if not w.is_alive():
+			ui.message("Wątek dodatku nie działa. Przeładuj NVDA klawiszami NVDA+Ctrl+F3.")
+			return
+		if busy > 2.0:
+			ui.message("Dodatek czeka na odpowiedź StreamFab od %d sekund" % int(busy))
+		w.tasks.put(w.taskStatus)
 
 	@script(description="Przenosi fokus do pola adresu przeglądarki StreamFab", category=CATEGORY, gesture="kb:control+l")
 	def script_address(self, gesture):
