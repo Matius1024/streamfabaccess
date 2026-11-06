@@ -442,6 +442,7 @@ class Worker(threading.Thread):
 			self.uia = comtypes.CoCreateInstance(clsid, interface=UIA.IUIAutomation, clsctx=comtypes.CLSCTX_INPROC_SERVER)
 			self.true = self.uia.CreateTrueCondition()
 			self.pidCond = self.uia.CreatePropertyCondition(UIA.UIA_ProcessIdPropertyId, self.pid)
+			threading.Thread(target=self.logLoop, name="StreamFabDostepLog", daemon=True).start()
 			while self.running:
 				try:
 					task = self.tasks.get(timeout=1.0)
@@ -578,7 +579,8 @@ class Worker(threading.Thread):
 
 	def readState(self, force=False):
 		now = time.monotonic()
-		if not self._labels and (force or now - self._lastResolve > 3.0):
+		# poza stroną główną paska nie ma, a każde szukanie trwa ok. 2,5 s — nie ponawiamy częściej niż co 10 s
+		if not self._labels and now - self._lastResolve > (5.0 if force else 10.0):
 			self._lastResolve = now
 			self.resolveLabels()
 		btn = self.operateButton()
@@ -639,7 +641,11 @@ class Worker(threading.Thread):
 			m = _RE_BEGIN.search(line)
 			if m:
 				tid = m.group(1)
-				self.current = (tid, time.monotonic())
+				try:
+					started = time.mktime(time.strptime(line[:19], "%Y:%m:%d-%H:%M:%S"))
+				except (ValueError, OverflowError):
+					started = time.time()
+				self.current = (tid, started)
 				if not first and self.autoAnnounce:
 					say("Pobieranie: " + self.titles.get(tid, "nowy film"))
 				continue
@@ -663,7 +669,7 @@ class Worker(threading.Thread):
 		tid, started = self.current
 		self.refreshTitles()
 		parts = ["Pobieranie: " + self.titles.get(tid, "film bez znanego tytułu")]
-		mins = int((time.monotonic() - started) // 60)
+		mins = int(max(0, time.time() - started) // 60)
 		parts.append("trwa od %d min" % mins if mins else "trwa od niecałej minuty")
 		tmp = None
 		try:
@@ -696,23 +702,51 @@ class Worker(threading.Thread):
 				parts.append("pobrano %d MB" % (total // (1024 * 1024)))
 		return ", ".join(parts)
 
-	def queueSummary(self):
-		"""Nagłówek i wiersze dla okna kolejki pobierania (wywoływane w wątku roboczym)."""
-		self.taskStamp = None
+	def logLoop(self):
+		"""Osobny wątek: log i pliki kolejki czytamy bez UIA, więc zawieszony StreamFab ich nie blokuje."""
+		while self.running:
+			try:
+				self.watchLog()
+			except Exception:
+				log.warning("StreamFab dostęp: błąd czytania logu", exc_info=True)
+			time.sleep(1.0)
+
+	def taskState(self, t):
+		res = self.results.get(t["id"])
+		if self.current and self.current[0] == t["id"]:
+			return "pobieranie trwa"
+		if res:
+			return "pobrano" if res[0] else "błąd: " + res[1]
+		return "czeka"
+
+	def fileStatus(self):
+		"""Stan pobierania tylko z plików i logu StreamFab (bez UIA)."""
 		self.refreshTitles()
-		state = self.readState(force=True)
-		header = ". ".join(p for p in list(state[:2]) + [self.currentProgress()] if p)
+		parts = []
+		prog = self.currentProgress()
+		if prog:
+			parts.append(prog)
+		else:
+			parts.append("Nic się teraz nie pobiera")
+		states = [self.taskState(t) for t in self.tasksCache]
+		if states:
+			err = sum(1 for s in states if s.startswith("błąd"))
+			wait = sum(1 for s in states if s == "czeka")
+			parts.append("W kolejce %d zadań: czeka %d, z błędem %d" % (len(states), wait, err))
+		else:
+			parts.append("Kolejka pusta")
+		if self.finished:
+			ok, title, text = self.finished[-1]
+			parts.append(("Ostatnio pobrano: " + title) if ok else ("Ostatni błąd: %s. %s" % (title, text)))
+		return ". ".join(parts)
+
+	def queueSummary(self):
+		"""Nagłówek i wiersze dla okna kolejki pobierania (tylko pliki, bez UIA)."""
+		self.taskStamp = None
+		header = self.fileStatus()
 		items = []
 		for t in self.tasksCache:
-			res = self.results.get(t["id"])
-			if self.current and self.current[0] == t["id"]:
-				stan = "pobieranie trwa"
-			elif res and not res[0]:
-				stan = "błąd: " + res[1]
-			elif res and res[0]:
-				stan = "pobrano"
-			else:
-				stan = "czeka"
+			stan = self.taskState(t)
 			items.append("%s, %s, %s, %s" % (t["title"], t["time"] or "czas nieznany", t["site"], stan))
 		for ok, title, text in reversed(self.finished):
 			if ok:
@@ -720,7 +754,6 @@ class Worker(threading.Thread):
 		return header, items
 
 	def poll(self):
-		self.watchLog()
 		if not self.isForeground():
 			return
 		self.checkDialog()
@@ -928,12 +961,13 @@ class Worker(threading.Thread):
 		log.info("StreamFab dostęp: taskStatus start, etykiety=%d" % len(self._labels))
 		status, queueText, enabled = self.readState(force=True)
 		log.info("StreamFab dostęp: taskStatus stan=%r kolejka=%r przycisk=%r" % (status, queueText, enabled))
-		parts = [p for p in (status, queueText, self.currentProgress()) if p]
+		parts = [p for p in (status, queueText) if p]
 		if enabled is True:
 			parts.append("przycisk Pobierz wideo aktywny")
 		elif enabled is False:
 			parts.append("przycisk Pobierz wideo nieaktywny")
-		say(". ".join(parts) if parts else "Brak paska stanu pobierania na tym ekranie. Otwórz stronę główną i stronę z filmem.")
+		parts.append(self.fileStatus())
+		say(". ".join(parts))
 
 	def taskDownload(self):
 		btn = self.operateButton()
@@ -1476,8 +1510,10 @@ class AppModule(appModuleHandler.AppModule):
 		if not w.is_alive():
 			ui.message("Wątek dodatku nie działa. Przeładuj NVDA klawiszami NVDA+Ctrl+F3.")
 			return
-		if busy > 2.0:
-			ui.message("Dodatek czeka na odpowiedź StreamFab od %d sekund" % int(busy))
+		if busy > 2.0 or w.tasks.qsize() > 0:
+			# StreamFab nie odpowiada na UIA (np. przy starcie pobierania) — odpowiadamy z plików, bez kolejkowania
+			ui.message("StreamFab jest zajęty. " + w.fileStatus())
+			return
 		w.tasks.put(w.taskStatus)
 
 	@script(description="Przenosi fokus do pola adresu przeglądarki StreamFab", category=CATEGORY, gesture="kb:control+l")
@@ -1501,19 +1537,12 @@ class AppModule(appModuleHandler.AppModule):
 
 	@script(description="Otwiera kolejkę pobierania z tytułami i stanem (czeka, trwa, błąd)", category=CATEGORY, gesture="kb:control+shift+k")
 	def script_queue(self, gesture):
-		w = self.worker
-
-		def task():
-			header, items = w.queueSummary()
-
-			def show():
-				gui.mainFrame.prePopup()
-				d = QueueDialog(gui.mainFrame, header, items)
-				d.Show()
-				d.Raise()
-				gui.mainFrame.postPopup()
-			wx.CallAfter(show)
-		w.tasks.put(task)
+		header, items = self.worker.queueSummary()  # tylko pliki — działa także, gdy StreamFab nie odpowiada
+		gui.mainFrame.prePopup()
+		d = QueueDialog(gui.mainFrame, header, items)
+		d.Show()
+		d.Raise()
+		gui.mainFrame.postPopup()
 
 	@script(description="Naciska OK w otwartym oknie dialogowym", category=CATEGORY, gesture="kb:control+shift+o")
 	def script_dialogOk(self, gesture):
