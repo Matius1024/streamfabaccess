@@ -12,7 +12,7 @@ kbd { font-family: inherit; font-weight: bold; }
 </head>
 <body>
 <h1>StreamFab dostęp</h1>
-<p>Wersja 0.6.4. Dodatek do czytnika ekranu NVDA, który poprawia dostępność programu StreamFab (StreamFab64.exe) i jego okna aktualizacji (StreamUpdate.exe) dla osób niewidomych.</p>
+<p>Wersja 0.6.5. Dodatek do czytnika ekranu NVDA, który poprawia dostępność programu StreamFab (StreamFab64.exe) i jego okna aktualizacji (StreamUpdate.exe) dla osób niewidomych.</p>
 
 <h2>Spis treści</h2>
 <ul>
@@ -20,6 +20,7 @@ kbd { font-family: inherit; font-weight: bold; }
 <li><a href="#instalacja">Instalacja i usuwanie</a></li>
 <li><a href="#skroty">Skróty klawiszowe</a></li>
 <li><a href="#dzialanie">Jak działa dodatek</a></li>
+<li><a href="#licencja">Okno Licencja</a></li>
 <li><a href="#aktualizacja">Okno aktualizacji StreamFab</a></li>
 <li><a href="#okno-pobierania">Okno pobierania serialu lub filmu</a></li>
 <li><a href="#porady">Porady dotyczące StreamFab</a></li>
@@ -37,17 +38,18 @@ kbd { font-family: inherit; font-weight: bold; }
 <li>menu My Account obsługuje klawiaturę, ale nie zgłasza fokusu i NVDA milczy;</li>
 <li>lista pobranych filmów (Pobrane, zakładka Downloaded) jest rysowana bez tekstu;</li>
 <li>w oknie pobierania serialu odcinki mają angielskie dopiski („Checked”, „Collapsed”), NVDA czasem czyta nie ten odcinek, na którym jest fokus, a zaznaczenie Spacją nie jest ogłaszane;</li>
+<li>w oknie Licencja klawisz Tab utyka w tabeli licencji, której komórki są rysowane bez tekstu (czytnik słyszy tylko puste komórki);</li>
 <li>listy wyboru języka audio i napisów mają angielskie nazwy („Language”, „Subtitle”), a języki na liście są po angielsku.</li>
 </ul>
 
 <h2 id="instalacja">Instalacja i usuwanie</h2>
 <h3>Instalacja</h3>
 <ol>
-<li>Otwórz plik <code>streamfabaccess.nvda-addon</code> pobrany z GitHuba (lub <code>streamFabDostep-0.6.4.nvda-addon</code>) — zaznacz go w Eksploratorze i naciśnij Enter.</li>
+<li>Otwórz plik <code>streamfabaccess.nvda-addon</code> pobrany z GitHuba (lub <code>streamFabDostep-0.6.5.nvda-addon</code>) — zaznacz go w Eksploratorze i naciśnij Enter.</li>
 <li>NVDA zapyta, czy zainstalować dodatek. Wybierz <kbd>Tak</kbd>. Jeśli starsza wersja jest już zainstalowana, NVDA zaproponuje jej aktualizację.</li>
 <li>Uruchom ponownie NVDA, gdy o to poprosi.</li>
 </ol>
-<p>Wymagany NVDA 2024.1 lub nowszy. Dodatek testowano z NVDA 2026.3 i StreamFab 7.0.5.6 na Windows 11.</p>
+<p>Wymagany NVDA 2024.1 lub nowszy. Dodatek testowano z NVDA 2026.3 i StreamFab 7.0.5.7 na Windows 11.</p>
 <h3>Usuwanie</h3>
 <p>Menu NVDA (<kbd>NVDA+N</kbd>) → Narzędzia → Menedżer dodatków (Sklep z dodatkami) → zakładka Zainstalowane → „StreamFab dostęp” → Usuń. Następnie uruchom ponownie NVDA.</p>
 <h3>Zmiana skrótów</h3>
@@ -55,6 +57,7 @@ kbd { font-family: inherit; font-weight: bold; }
 <ul>
 <li>skróty StreamFab — otwórz Zdarzenia wejścia, gdy aktywne jest okno StreamFab;</li>
 <li>skróty okna aktualizacji (w tym własny <kbd>Tab</kbd>, <kbd>Enter</kbd> i <kbd>Spacja</kbd>) — otwórz Zdarzenia wejścia, gdy aktywne jest okno aktualizacji StreamFab;</li>
+<li>własny <kbd>Enter</kbd> okna Licencja — otwórz Zdarzenia wejścia, gdy w StreamFab jest otwarte okno Licencja;</li>
 <li>skrót otwierania listy języków (<kbd>Enter</kbd>, <kbd>Alt+Strzałka w dół</kbd>, <kbd>F4</kbd>) — gdy fokus jest na liście Język audio lub Napisy.</li>
 </ul>
 <p>Klawisze <kbd>Tab</kbd>, <kbd>Shift+Tab</kbd>, <kbd>Strzałka w górę</kbd>, <kbd>Strzałka w dół</kbd>, <kbd>Spacja</kbd> i <kbd>Escape</kbd> w StreamFab dodatek przypisuje sam tylko na czas, gdy w StreamFab jest otwarte okno dialogowe; dlatego w Zdarzeniach wejścia mają przypisany klawisz tylko wtedy, gdy takie okno jest otwarte.</p>
@@ -75,11 +78,11 @@ kbd { font-family: inherit; font-weight: bold; }
 <h3>Okna dialogowe</h3>
 <table>
 <tr><th>Skrót</th><th>Działanie</th></tr>
-<tr><td><kbd>Ctrl+Shift+O</kbd></td><td>Naciska OK (lub inny przycisk zatwierdzający) w otwartym oknie.</td></tr>
-<tr><td><kbd>Ctrl+Shift+C</kbd></td><td>Naciska Anuluj, a gdy go nie ma — Zamknij.</td></tr>
+<tr><td><kbd>Ctrl+Shift+O</kbd></td><td>Naciska OK (lub inny przycisk zatwierdzający) w otwartym oknie. W oknie Licencja naciska Rozpocznij StreamFab.</td></tr>
+<tr><td><kbd>Ctrl+Shift+C</kbd></td><td>Naciska Anuluj, a gdy go nie ma — Zamknij. W oknie Licencja zamyka okno.</td></tr>
 <tr><td><kbd>Ctrl+Shift+Strzałka w prawo</kbd> / <kbd>w lewo</kbd></td><td>Przechodzi po wszystkich przyciskach okna, także tych, do których nie dochodzi Tab. NVDA mówi nazwę i numer, np. „OK, 3 z 4”.</td></tr>
-<tr><td><kbd>Ctrl+Shift+Enter</kbd></td><td>Naciska przycisk wybrany strzałkami.</td></tr>
-<tr><td><kbd>Ctrl+Shift+R</kbd></td><td>Czyta całą treść okna: tytuł, komunikaty i zawartość pól.</td></tr>
+<tr><td><kbd>Ctrl+Shift+Enter</kbd></td><td>Naciska przycisk wybrany strzałkami. Przycisk zakupu „Subskrybuj teraz” naciska dopiero po drugim naciśnięciu w ciągu 4 sekund.</td></tr>
+<tr><td><kbd>Ctrl+Shift+R</kbd></td><td>Czyta całą treść okna: tytuł, komunikaty i zawartość pól. W oknie Licencja: produkt, stan autoryzacji, e-mail, liczbę wierszy tabeli, licencje z pliku rejestracji, ofertę Fab365 i stan pola Nie pokazuj ponownie.</td></tr>
 <tr><td><kbd>Ctrl+Shift+W</kbd></td><td>Przechodzi do kolejnego otwartego okna StreamFab (np. gdy okno logowania zasłania okno Licencja).</td></tr>
 </table>
 <h3>Klawisze w otwartym oknie StreamFab</h3>
@@ -130,7 +133,7 @@ kbd { font-family: inherit; font-weight: bold; }
 <h3>Lista pobranych filmów</h3>
 <p>Wiersze na zakładce Downloaded nie zawierają tekstu. Dodatek odczytuje tytuły i ścieżki plików z danych programu w folderze <code>%APPDATA%\StreamFab\StreamFab\localdata</code> (tylko odczyt — niczego tam nie zmienia).</p>
 <h3>Bezpieczeństwo</h3>
-<p>Dodatek nie łączy się z internetem i nie zmienia ustawień StreamFab. Przyciski naciska tylko na Twoje polecenie.</p>
+<p>Dodatek nie łączy się z internetem i nie zmienia ustawień StreamFab. Przyciski naciska tylko na Twoje polecenie. Odczyt tabeli licencji używa wbudowanego w Windows i NVDA rozpoznawania tekstu (OCR), które działa lokalnie, bez wysyłania obrazu.</p>
 
 <h2 id="porady">Porady dotyczące StreamFab</h2>
 <ul>
@@ -140,6 +143,22 @@ kbd { font-family: inherit; font-weight: bold; }
 <li>Ustawienia → Preferencje → „Wybierz wstępnie opisowe Audio, jeśli dostępne” — po włączeniu StreamFab wybiera ścieżkę z audiodeskrypcją, gdy serwis ją udostępnia.</li>
 <li>Ustawienia → Ogólne → „Katalog pobierania” i „Katalog tymczasowy” — ustaw na dysk z dużą ilością wolnego miejsca; inaczej pojawia się ostrzeżenie o braku miejsca.</li>
 </ul>
+
+<h2 id="licencja">Okno Licencja</h2>
+<p>StreamFab pokazuje okno Licencja po uruchomieniu (o ile nie zaznaczono „Nie pokazuj ponownie”) i po zalogowaniu. Po jego pojawieniu się NVDA czyta: „Okno Licencja. StreamFab, Autoryzowany, adres e-mail. Tabela licencji: 72 wiersze”, liczbę opcji z licencją i datę ich ważności według pliku rejestracji StreamFab (<code>%APPDATA%\StreamFab\StreamFab\regRecord\localuse.rec</code>, np. „70 opcji z licencją, bezterminowo”) oraz podpowiedź skrótów.</p>
+<p>W tym oknie <kbd>Tab</kbd> utykał w tabeli, dlatego dodatek ma własny cykl <kbd>Tab</kbd> / <kbd>Shift+Tab</kbd>: tabela licencji, oferta Fab365 (przetłumaczona na polski, z ceną), Subskrybuj teraz (otwiera stronę zakupu), Nie pokazuj ponownie (z podaniem stanu), Rozpocznij StreamFab, Zamknij. <kbd>Enter</kbd>, <kbd>Enter</kbd> na klawiaturze numerycznej lub <kbd>Spacja</kbd> wykonuje akcję bieżącego elementu.</p>
+<p>Komórki tabeli licencji StreamFab rysuje bez tekstu, więc ani UI Automation, ani MSAA nie podają ich treści. <kbd>Enter</kbd> na tabeli przewija ją (paskiem przewijania okna) i rozpoznaje widoczne wiersze wbudowanym w NVDA OCR Windows; wiersz i kolumnę każdego słowa wyznaczają prostokąty komórek. Trwa to kilka–kilkanaście sekund. Wynik pojawia się w oknie do czytania strzałkami: najpierw podsumowanie (liczba wierszy, ile jest licencji w każdym stanie, dane z pliku rejestracji), potem jeden wiersz tabeli na linię, np. „Opcja: Netflix Downloader, Stan: Dożywotni” albo „Opcja: New Products Guarantee, Stan: Darmowa próba, Akcja: Kup teraz”. <kbd>Escape</kbd> zamyka okno listy. Odczyt jest zapamiętany do zamknięcia okna Licencja, a komórki tabeli dostają wtedy nazwy z treścią wiersza.</p>
+<p>Warunki odczytu: okno StreamFab musi być widoczne na ekranie (dodatek sam przenosi je na wierzch, a gdy tabela wystaje pod pasek zadań — przesuwa okno w górę). Przy włączonej kurtynie ekranowej NVDA próbuje przechwytywania Windows Graphics Capture; gdy się nie uda, wyłącz kurtynę (<kbd>NVDA+Ctrl+Escape</kbd>) na czas odczytu. OCR może przekręcić pojedyncze litery w nazwach.</p>
+<table>
+<tr><th>Klawisz</th><th>Działanie</th></tr>
+<tr><td><kbd>Tab</kbd> / <kbd>Shift+Tab</kbd></td><td>Następny / poprzedni element własnego cyklu (lista powyżej).</td></tr>
+<tr><td><kbd>Enter</kbd>, <kbd>Enter</kbd> numeryczny lub <kbd>Spacja</kbd></td><td>Tabela — pełna lista licencji w oknie do czytania; oferta — przeczytaj ponownie; Nie pokazuj ponownie — przełącz i podaj stan; Rozpocznij StreamFab i Zamknij — naciśnij; Subskrybuj teraz — dopiero po drugim naciśnięciu w ciągu 4 sekund (pierwsze tylko ostrzega).</td></tr>
+<tr><td><kbd>Ctrl+Shift+O</kbd></td><td>Rozpocznij StreamFab.</td></tr>
+<tr><td><kbd>Ctrl+Shift+C</kbd></td><td>Zamknij okno Licencja.</td></tr>
+<tr><td><kbd>Ctrl+Shift+R</kbd></td><td>Przeczytaj okno (z ofertą i stanem pola Nie pokazuj ponownie).</td></tr>
+<tr><td><kbd>Ctrl+Shift+H</kbd></td><td>Wszystkie skróty dodatku, także okna Licencja.</td></tr>
+</table>
+<p>„Subskrybuj teraz” nie ma własnego skrótu, bo otwiera stronę zakupu.</p>
 
 <h2 id="aktualizacja">Okno aktualizacji StreamFab (StreamUpdate.exe)</h2>
 <p>Okno aktualizacji działa w osobnym programie (StreamUpdate.exe), więc ma własny moduł dodatku. Po pojawieniu się okna NVDA sam czyta tytuł, komunikaty po polsku, wiersze tabeli (np. „StreamFab_us (x64): obecna wersja 7.0.5.6, nowa wersja 7.0.5.7, rozmiar 760.5 MB”) i podpowiedź skrótów. Przyciski mają polskie nazwy (Minimalizuj, Zamknij, Pomiń tę wersję, Uaktualnij teraz, Anuluj), a pole wyboru nazywa się „Otrzymuj aktualizacje w wersji beta”. Po rozpoczęciu aktualizacji dodatek ogłasza zmiany tekstów oraz postęp co kilka procent.</p>
@@ -173,10 +192,18 @@ kbd { font-family: inherit; font-weight: bold; }
 <li>Pasek zakładek przeglądarki (Official Site, Hot Promotion, Forum) nie jest dostępny z klawiatury.</li>
 <li>W StreamFab <kbd>Ctrl+Shift+Strzałki</kbd> nie zaznaczają tekstu słowami, bo zajmuje je dodatek (można to zmienić w Zdarzeniach wejścia).</li>
 <li>Wiersze na zakładce Downloading są rysowane bez tekstu i nie dostają fokusu. Tytuły i stan zadań czyta okno <kbd>Ctrl+Shift+K</kbd>. Procentu postępu StreamFab nigdzie nie podaje tekstem — dodatek podaje zamiast tego, ile megabajtów już pobrano.</li>
+<li>Tabela okna Licencja jest odczytywana przez OCR — wymaga widocznego okna i może przekręcić pojedyncze litery. Kolumna „Licencja” jest w StreamFab ukryta (zerowa szerokość), więc nie ma jej w odczycie.</li>
 <li>W rozwiniętej liście języków StreamFab nie zgłasza fokusu na poszczególnych językach — dodatek sam podaje NVDA język, na którym jest klawiatura.</li>
 </ul>
 
 <h2 id="zmiany">Historia zmian</h2>
+<h3>0.6.5</h3>
+<ul>
+<li>Dostępne okno Licencja (StreamFab 7.0.5.7): automatyczne czytanie (produkt, stan autoryzacji, e-mail, liczba wierszy tabeli, licencje z pliku rejestracji, podpowiedź skrótów), własny cykl <kbd>Tab</kbd> / <kbd>Shift+Tab</kbd> (tabela licencji, oferta Fab365 po polsku z ceną, Subskrybuj teraz, Nie pokazuj ponownie, Rozpocznij StreamFab, Zamknij) z <kbd>Enter</kbd> / <kbd>Spacją</kbd>.</li>
+<li>Tabela licencji (komórki bez tekstu) odczytywana na żądanie przez OCR Windows z przewijaniem tabeli; wynik w oknie do czytania strzałkami, wiersz na linię („Opcja: …, Stan: …”). Przebiegi zachodzą na siebie, a z kilku odczytów komórki wybierany jest najbardziej wiarygodny, więc wiersz chwilowo zasłonięty przez inne okno nie psuje wyniku.</li>
+<li>W oknie Licencja <kbd>Ctrl+Shift+O</kbd> naciska Rozpocznij StreamFab, <kbd>Ctrl+Shift+C</kbd> zamyka okno, <kbd>Ctrl+Shift+R</kbd> czyta okno z ofertą i stanem pola.</li>
+<li>Przycisk zakupu „Subskrybuj teraz” jest naciskany dopiero po potwierdzeniu (drugie naciśnięcie w ciągu 4 sekund), także przy <kbd>Ctrl+Shift+Enter</kbd>.</li>
+</ul>
 <h3>0.6.4</h3>
 <ul>
 <li>Okno aktualizacji: <kbd>Ctrl+Shift+I</kbd> (oraz <kbd>Enter</kbd> / <kbd>Spacja</kbd> na polu „Co nowego” we własnym cyklu Tab) otwiera tekst „Co nowego” w oknie do czytania strzałkami, z tytułem zawierającym nową wersję. Każda linia jest osobnym akapitem, tekst można zaznaczyć i skopiować (np. do tłumaczenia). <kbd>Escape</kbd> zamyka okno.</li>

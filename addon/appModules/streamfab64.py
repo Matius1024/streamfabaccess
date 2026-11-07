@@ -11,6 +11,7 @@ import struct
 import subprocess
 import threading
 import time
+from html import escape
 
 import api
 import appModuleHandler
@@ -53,6 +54,7 @@ NAMES = {
 	"m_lineEditEmail": "E-mail",
 	"m_lineEditPassword": "Hasło",
 	"pushButtonLeftClose": "Zamknij",
+	"tableWidgetLicense": "Tabela licencji",
 }
 # Angielskie napisy okna logowania.
 TRANSLATE = {
@@ -146,6 +148,8 @@ DIALOG_GESTURES = {
 	"kb:space": "toggleItem",
 	"kb:escape": "escape",
 }
+# Dodatkowe klawisze przechwytywane tylko w oknie Licencja (Tab i Spację obsługują skrypty z DIALOG_GESTURES).
+LICENSE_GESTURES = ("kb:enter", "kb:numpadEnter")
 ITEM_ROLES = (
 	controlTypes.Role.TREEVIEWITEM,
 	controlTypes.Role.LISTITEM,
@@ -161,6 +165,8 @@ CLOSE_BUTTONS = ("pushButtonLeftClose", "pushButton_dialogClose", "pushButton_cl
 OK_NAMES = ("ok", "tak", "yes", "potwierdź", "confirm", "zapisz", "save")
 CANCEL_NAMES = ("cancel", "anuluj", "nie", "no")
 WINDOW_TYPE = 50032
+DATAITEM_TYPE = 50029
+HEADER_TYPE = 50034
 TEXT_TYPE = 50020
 EDIT_TYPE = 50004
 BUTTON_TYPES = (50000, 50002, 50013, 50003)  # przycisk, pole wyboru, przycisk opcji, lista rozwijana
@@ -174,8 +180,38 @@ DIALOG_TITLES = {
 	"UniFabIntroduceDlg": "Okno reklamy UniFab. Uwaga: przycisk Instaluj w tle instaluje inny program",
 	"QRegister": "Okno logowania StreamFab",
 	"WebSitePopupDlg": "Okno reklamy StreamFab, Ctrl+Shift+C zamyka",
-	"LicenseInfoOptionsDlg": "Okno Licencja, Ctrl+Shift+C zamyka",
+	"LicenseInfoOptionsDlg": "Okno Licencja",
 }
+# --- okno Licencja (LicenseInfoOptionsDlg) ---
+LICENSE_CLASS = "LicenseInfoOptionsDlg"
+# Własny cykl Tab: (ostatni człon AutomationId, rodzaj, polska nazwa, rola mówiona).
+LICENSE_TAB = (
+	("tableWidgetLicense", "table", "Tabela licencji", ""),
+	("labelprivilege", "offer", "Oferta Fab365", ""),
+	("pushButton_upgrade", "buy", "Subskrybuj teraz", "przycisk, otwiera stronę zakupu"),
+	("checkBoxShowAgain", "check", "Nie pokazuj ponownie", "pole wyboru"),
+	("pushButtonStart", "button", "Rozpocznij StreamFab", "przycisk, Ctrl+Shift+O"),
+	("pushButtonClose", "button", "Zamknij", "przycisk, Ctrl+Shift+C"),
+)
+# Przyciski, które otwierają stronę zakupu — naciskamy je dopiero po potwierdzeniu.
+BUY_BUTTONS = ("pushButton_upgrade",)
+BUY_CONFIRM_SECONDS = 4.0
+LICENSE_HINT = ("Tab i Shift+Tab przechodzą po elementach okna, Enter lub Spacja wykonuje akcję; "
+	"na tabeli licencji Enter otwiera pełną listę do czytania strzałkami. "
+	"Ctrl+Shift+O: Rozpocznij StreamFab. Ctrl+Shift+C: Zamknij. Ctrl+Shift+R: przeczytaj okno. Ctrl+Shift+H: pomoc.")
+# Tekst oferty Fab365 (StreamFab pokazuje go po angielsku), tłumaczony wiersz po wierszu.
+OFFER_TRANSLATE = {
+	"Subscribe to Fab365 for all StreamFab software and services!":
+		"Subskrybuj Fab365, aby mieć wszystkie programy i usługi StreamFab.",
+	"Unlock future products & Dual-OS.": "Odblokowanie przyszłych produktów i obu systemów, Windows i Mac.",
+	"Enjoy multi-device support & Extended Download Services.":
+		"Obsługa wielu urządzeń i rozszerzone usługi pobierania.",
+}
+# Plik rejestracji StreamFab: RegInfo="1|310:8260744964|308:...|VP:-1|..." (numer opcji : koniec licencji, czas uniksowy).
+REG_RECORD = os.path.expandvars(r"%APPDATA%\StreamFab\StreamFab\regRecord\localuse.rec")
+# Ikona „ptaszka” przed stanem licencji OCR czyta jako osobny znak.
+_OCR_ICON = ("@", "©", "®", "O", "o", "0", "Q", "G", "e", "•", "*", "V", "v", "✓", "✔", "√", "(v)")
+_OCR_FIXES = ((re.compile(r"Down[il1|]oad"), "Download"), (re.compile(r"\s+([,.:;])"), r"\1"))
 POPUP_CLASSES = ("ComboBox", "QMenu", "Menu", "ToolTip", "TipLabel", "Popup", "QListView", "Completer")
 # Okno dialogowe z większą liczbą tekstów (np. Ustawienia) czytamy tylko z tytułu.
 MAX_AUTO_TEXTS = 6
@@ -199,6 +235,160 @@ def humanize(objectName):
 
 def say(text):
 	queueHandler.queueFunction(queueHandler.eventQueue, ui.message, text)
+
+
+def showText(lines, title):
+	"""Okno do czytania strzałkami (w głównym wątku NVDA); każda linia osobnym akapitem."""
+	html = "".join("<p>%s</p>" % escape(ln) for ln in lines)
+	try:
+		ui.browseableMessage(html, title, isHtml=True, closeButton=True, copyButton=True)
+	except TypeError:  # NVDA starsze niż 2025.1 nie mają przycisków
+		ui.browseableMessage(html, title, True)
+
+
+def plural(n, one, few, many):
+	if n == 1:
+		return "%d %s" % (n, one)
+	if n % 10 in (2, 3, 4) and n % 100 not in (12, 13, 14):
+		return "%d %s" % (n, few)
+	return "%d %s" % (n, many)
+
+
+def readRegLicenses():
+	"""Opis licencji z pliku rejestracji StreamFab („70 opcji z licencją, bezterminowo”) albo pusty tekst."""
+	try:
+		with open(REG_RECORD, "r", encoding="utf-8", errors="replace") as f:
+			data = f.read()
+	except OSError:
+		return ""
+	m = re.search(r'RegInfo="([^"]*)"', data)
+	if not m:
+		return ""
+	stamps = []
+	for part in m.group(1).split("|"):
+		key, _, val = part.partition(":")
+		if key.isdigit() and val.isdigit():
+			stamps.append(int(val))
+	if not stamps:
+		return ""
+	try:
+		end = time.gmtime(min(stamps))
+		when = "bezterminowo" if end.tm_year >= 2100 else "do %02d.%02d.%d" % (end.tm_mday, end.tm_mon, end.tm_year)
+	except (OverflowError, OSError, ValueError):
+		when = ""
+	text = "według pliku rejestracji %s z licencją" % plural(len(stamps), "opcja", "opcje", "opcji")
+	return text + (", " + when if when else "")
+
+
+def translateOffer(text):
+	"""Tekst oferty Fab365 po polsku (nieznane wiersze zostają bez zmian)."""
+	out = []
+	for line in (text or "").splitlines():
+		line = line.strip().lstrip("-•").strip()
+		if line:
+			out.append(OFFER_TRANSLATE.get(line, line))
+	return " ".join(out)
+
+
+def priceText(text):
+	"""„$129.99” → „129,99 USD”."""
+	return re.sub(r"\$\s*(\d+)[.,](\d+)", r"\1,\2 USD", (text or "").strip())
+
+
+class _MONITORINFO(ctypes.Structure):
+	_fields_ = [("cbSize", ctypes.c_ulong), ("rcMonitor", ctypes.wintypes.RECT),
+		("rcWork", ctypes.wintypes.RECT), ("dwFlags", ctypes.c_ulong)]
+
+
+# Własne wskaźniki funkcji user32 (z typami dla 64 bitów), żeby nie zmieniać ustawień innych dodatków.
+_user32 = ctypes.WinDLL("user32")
+_user32.MonitorFromWindow.restype = ctypes.c_void_p
+_user32.MonitorFromWindow.argtypes = (ctypes.c_void_p, ctypes.c_ulong)
+_user32.GetMonitorInfoW.argtypes = (ctypes.c_void_p, ctypes.POINTER(_MONITORINFO))
+_user32.GetAncestor.restype = ctypes.c_void_p
+_user32.GetAncestor.argtypes = (ctypes.c_void_p, ctypes.c_uint)
+_user32.GetWindowRect.argtypes = (ctypes.c_void_p, ctypes.POINTER(ctypes.wintypes.RECT))
+_user32.SetWindowPos.argtypes = (ctypes.c_void_p, ctypes.c_void_p, ctypes.c_int, ctypes.c_int,
+	ctypes.c_int, ctypes.c_int, ctypes.c_uint)
+
+
+def rootWindow(hwnd):
+	return _user32.GetAncestor(hwnd, 2) or hwnd  # GA_ROOT
+
+
+def workArea(hwnd):
+	"""Obszar roboczy monitora z oknem (bez paska zadań): (lewo, góra, prawo, dół)."""
+	mi = _MONITORINFO()
+	mi.cbSize = ctypes.sizeof(mi)
+	mon = _user32.MonitorFromWindow(hwnd, 2)  # MONITOR_DEFAULTTONEAREST
+	if not mon or not _user32.GetMonitorInfoW(mon, ctypes.byref(mi)):
+		return None
+	r = mi.rcWork
+	return (r.left, r.top, r.right, r.bottom)
+
+
+def callMain(func, timeout=5.0):
+	"""Wykonuje funkcję w głównym wątku NVDA i czeka na wynik (z wątku workera)."""
+	done = threading.Event()
+	box = {}
+
+	def run():
+		try:
+			box["r"] = func()
+		except Exception as e:
+			box["e"] = e
+		finally:
+			done.set()
+	queueHandler.queueFunction(queueHandler.eventQueue, run)
+	if not done.wait(timeout):
+		raise RuntimeError("NVDA nie odpowiada")
+	if "e" in box:
+		raise box["e"]
+	return box.get("r")
+
+
+def ocrWords(left, top, width, height, timeout=10.0):
+	"""Rozpoznaje tekst prostokąta ekranu wbudowanym OCR Windows w NVDA.
+	Zwraca listę słów (lewo, góra, prawo, dół, tekst) we współrzędnych ekranu."""
+	from contentRecog import RecogImageInfo, recogUi, uwpOcr
+	ocr = uwpOcr.UwpOcr()
+	info = RecogImageInfo.createFromRecognizer(left, top, width, height, ocr)
+	# recogUi._captureImage obsługuje też kurtynę ekranową (przechwytywanie Windows Graphics Capture)
+	pixels = callMain(lambda: recogUi._captureImage(info))
+	done = threading.Event()
+	box = {}
+
+	def onResult(result):
+		box["r"] = result
+		done.set()
+	callMain(lambda: ocr.recognize(pixels, info, onResult))
+	if not done.wait(timeout):
+		raise RuntimeError("OCR nie odpowiedział")
+	result = box.get("r")
+	if isinstance(result, Exception):
+		raise result
+	words = []
+	for line in getattr(result, "data", None) or []:
+		for w in line:
+			try:
+				x = info.convertXToScreen(w["x"])
+				y = info.convertYToScreen(w["y"])
+				words.append((x, y, x + info.convertWidthToScreen(w["width"]),
+					y + info.convertHeightToScreen(w["height"]), w["text"]))
+			except (KeyError, TypeError):
+				continue
+	return words
+
+
+def cleanCell(text, stateColumn=False):
+	"""Poprawia typowe błędy OCR w komórce tabeli licencji."""
+	parts = text.split()
+	if stateColumn and len(parts) > 1 and parts[0] in _OCR_ICON:
+		parts = parts[1:]
+	text = " ".join(parts)
+	for rx, rep in _OCR_FIXES:
+		text = rx.sub(rep, text)
+	return text.strip()
 
 
 # --- lista pobranych filmów (pliki localdata StreamFab, format QDataStream) ---
@@ -419,7 +609,10 @@ class Worker(threading.Thread):
 		self._cycle = None  # (identyfikator okna, indeks)
 		self._lastCount = None  # ostatnio przeczytany licznik zaznaczonych odcinków
 		self._message = None  # ostatni komunikat stanu okna (np. logowania)
-		self.onDialogChange = None  # wywoływane w głównym wątku NVDA: (czy jest otwarte okno)
+		self.licCur = None  # bieżący element własnego cyklu Tab w oknie Licencja
+		self.licRows = None  # odczytane wiersze tabeli licencji: {numer wiersza: tekst}
+		self._buyArmed = 0.0  # czas pierwszego naciśnięcia przycisku zakupu (potwierdzenie)
+		self.onDialogChange = None  # wywoływane w głównym wątku NVDA: (czy jest otwarte okno, klasa okna)
 		self.busyName = None  # diagnostyka: co wątek właśnie robi
 		self.busySince = None
 		# śledzenie pobierania z logu StreamFab
@@ -788,8 +981,12 @@ class Worker(threading.Thread):
 		self._cycle = None
 		self._lastCount = None
 		self._message = None
+		self.licCur = None
+		self.licRows = None
+		self._buyArmed = 0.0
+		cls = key[2] if key else ""
 		if self.onDialogChange:
-			queueHandler.queueFunction(queueHandler.eventQueue, self.onDialogChange, bool(dlg))
+			queueHandler.queueFunction(queueHandler.eventQueue, self.onDialogChange, bool(dlg), cls)
 		if not dlg:
 			return
 		time.sleep(0.4)  # niech okno się dorysuje
@@ -802,6 +999,8 @@ class Worker(threading.Thread):
 		self.taskReadDialog(dlg, auto=True)
 		if moved:
 			say("Logowanie czeka na zamknięcie tego okna" if self.hasBackground("QRegister") else "Przeniesiono do tego okna")
+		if cls == LICENSE_CLASS:
+			return  # fokus stoi w pustej komórce tabeli — nie czytamy jej
 		self.taskHiddenFocus(dlg, delay=0)
 
 	def watchMessage(self, dlg, announce=True):
@@ -1084,6 +1283,10 @@ class Worker(threading.Thread):
 		if not dlg:
 			say("Brak otwartego okna dialogowego")
 			return
+		if self.className(dlg) == LICENSE_CLASS:
+			# okno Licencja: OK = Rozpocznij StreamFab, Anuluj = Zamknij (bez szukania po nazwach)
+			groups = (("pushButtonStart",),) if label == "OK" else (("pushButtonClose",),)
+			names = ()
 		buttons = self.dialogButtons(dlg)
 		# grupy przeszukujemy po kolei: najpierw właściwe przyciski, potem zastępcze (np. Zamknij zamiast Anuluj)
 		for ids in groups:
@@ -1108,7 +1311,19 @@ class Worker(threading.Thread):
 		idx = self._cycle[1] if self._cycle and self._cycle[0] == key else (-1 if step > 0 else len(buttons))
 		idx = (idx + step) % len(buttons)
 		self._cycle = (key, idx)
-		say("%s, %d z %d" % (self.buttonName(buttons[idx]), idx + 1, len(buttons)))
+		extra = ", otwiera stronę zakupu" if self.last(buttons[idx]) in BUY_BUTTONS else ""
+		say("%s%s, %d z %d" % (self.buttonName(buttons[idx]), extra, idx + 1, len(buttons)))
+
+	def confirmBuy(self, key):
+		"""Przycisk zakupu naciskamy dopiero przy drugim naciśnięciu w ciągu kilku sekund."""
+		now = time.monotonic()
+		if self._buyArmed and now - self._buyArmed < BUY_CONFIRM_SECONDS:
+			self._buyArmed = 0.0
+			return True
+		self._buyArmed = now
+		say("Uwaga: Subskrybuj teraz otwiera stronę zakupu w przeglądarce. "
+			"Naciśnij %s ponownie w ciągu %d sekund, żeby kontynuować." % (key, int(BUY_CONFIRM_SECONDS)))
+		return False
 
 	def taskPressCurrent(self):
 		dlg = self.activeDialog()
@@ -1122,6 +1337,8 @@ class Worker(threading.Thread):
 			self._cycle = None
 			return
 		b = buttons[self._cycle[1]]
+		if self.last(b) in BUY_BUTTONS and not self.confirmBuy("Ctrl+Shift+Enter"):
+			return
 		nm = self.buttonName(b)
 		self.press(b)
 		say(nm)
@@ -1130,6 +1347,9 @@ class Worker(threading.Thread):
 		dlg = dlg or self.activeDialog()
 		if not dlg:
 			say("Brak otwartego okna dialogowego")
+			return
+		if self.className(dlg) == LICENSE_CLASS:
+			say(self.licenseSummary(dlg, full=not auto))
 			return
 		elements = self.collect(dlg, lambda e: e.CurrentControlType in (TEXT_TYPE, EDIT_TYPE))
 		if not elements:
@@ -1154,6 +1374,322 @@ class Worker(threading.Thread):
 			say("%s. Ctrl+Shift+R czyta jego treść." % title)
 			return
 		say(". ".join([title] + texts))
+
+	# --- okno Licencja ---
+	def licenseDialog(self):
+		dlg = self.activeDialog()
+		return dlg if dlg and self.className(dlg) == LICENSE_CLASS else None
+
+	def licenseElements(self, dlg):
+		"""Elementy okna Licencja według ostatniego członu AutomationId."""
+		wanted = {k[0] for k in LICENSE_TAB} | {"label_product", "label_license", "label_email",
+			"labelNowPrice", "labelOriginPrice", "licenseInfoOverlayScrollBar"}
+		out = {}
+		for el in self.collect(dlg, lambda e: self.last(e) in wanted):
+			out.setdefault(self.last(el), el)
+		return out
+
+	@staticmethod
+	def elName(els, key):
+		el = els.get(key)
+		try:
+			return (el.CurrentName or "").strip() if el else ""
+		except comtypes.COMError:
+			return ""
+
+	def licenseRowCount(self, table):
+		try:
+			pat = table.GetCurrentPattern(UIA.UIA_GridPatternId).QueryInterface(UIA.IUIAutomationGridPattern)
+			return int(pat.CurrentRowCount)
+		except (comtypes.COMError, AttributeError, ValueError, TypeError):
+			return 0
+
+	def toggleText(self, el):
+		try:
+			pat = el.GetCurrentPattern(UIA.UIA_TogglePatternId).QueryInterface(UIA.IUIAutomationTogglePattern)
+			return "zaznaczone" if pat.CurrentToggleState == 1 else "niezaznaczone"
+		except (comtypes.COMError, AttributeError, ValueError):
+			return "stan nieznany"
+
+	def offerText(self, els):
+		text = translateOffer(self.elName(els, "labelprivilege"))
+		price = " ".join(p for p in (priceText(self.elName(els, "labelNowPrice")), self.elName(els, "labelOriginPrice")) if p)
+		if price:
+			text = (text + " Cena: " + price).strip()
+		return ("Oferta Fab365: " + text) if text else ""
+
+	def licenseStates(self):
+		"""„Dożywotni: 68, Darmowe: 1” z odczytanej tabeli."""
+		counts = {}
+		for cells in (self.licRows or {}).values():
+			st = cells.get(2)
+			if st:
+				counts[st] = counts.get(st, 0) + 1
+		return ", ".join("%s: %d" % (k, v) for k, v in sorted(counts.items(), key=lambda kv: -kv[1]))
+
+	def licenseSummary(self, dlg, full=False):
+		els = self.licenseElements(dlg)
+		parts = ["Okno Licencja"]
+		head = ", ".join(p for p in (self.elName(els, "label_product"), self.elName(els, "label_license"),
+			self.elName(els, "label_email")) if p)
+		if head:
+			parts.append(head)
+		table = els.get("tableWidgetLicense")
+		n = self.licenseRowCount(table) if table else 0
+		if n:
+			parts.append("Tabela licencji: " + plural(n, "wiersz", "wiersze", "wierszy"))
+		states = self.licenseStates()
+		if states:
+			parts.append("Stany licencji: " + states)
+		reg = readRegLicenses()
+		if reg:
+			parts.append(reg[:1].upper() + reg[1:])
+		if full:
+			offer = self.offerText(els)
+			if offer:
+				parts.append(offer)
+			chk = els.get("checkBoxShowAgain")
+			if chk:
+				parts.append("Nie pokazuj ponownie: " + self.toggleText(chk))
+		parts.append(LICENSE_HINT)
+		return ". ".join(p.rstrip(". ") for p in parts if p) + "."
+
+	def licenseTabItems(self, dlg):
+		els = self.licenseElements(dlg)
+		out = []
+		for key, kind, label, role in LICENSE_TAB:
+			el = els.get(key)
+			if not el:
+				continue
+			try:
+				if not el.CurrentIsEnabled:
+					continue
+			except comtypes.COMError:
+				continue
+			out.append((key, kind, label, role, el))
+		return out, els
+
+	def taskLicenseTab(self, step):
+		dlg = self.licenseDialog()
+		if not dlg:
+			say("Okno Licencja nie jest otwarte")
+			return
+		seq, els = self.licenseTabItems(dlg)
+		if not seq:
+			say("Brak elementów do przejścia")
+			return
+		keys = [k[0] for k in seq]
+		if self.licCur in keys:
+			idx = (keys.index(self.licCur) + step) % len(seq)
+		else:
+			idx = 0 if step > 0 else len(seq) - 1
+		key, kind, label, role, el = seq[idx]
+		self.licCur = key
+		self._buyArmed = 0.0
+		if kind == "table":
+			n = self.licenseRowCount(el)
+			text = "Tabela licencji, " + plural(n, "wiersz", "wiersze", "wierszy") if n else "Tabela licencji"
+			if self.licRows:
+				states = self.licenseStates()
+				text += (", " + states) if states else ""
+			say(text + ". Enter lub Spacja otwiera pełną listę")
+		elif kind == "offer":
+			say(self.offerText(els) or label)
+		elif kind == "check":
+			say("%s, %s, %s" % (label, role, self.toggleText(el)))
+		else:
+			say("%s, %s" % (label, role))
+
+	def taskLicenseActivate(self):
+		dlg = self.licenseDialog()
+		if not dlg:
+			say("Okno Licencja nie jest otwarte")
+			return
+		seq, els = self.licenseTabItems(dlg)
+		entry = next((k for k in seq if k[0] == self.licCur), None)
+		if not entry:
+			say("Element jest niedostępny. Naciśnij Tab.")
+			return
+		key, kind, label, role, el = entry
+		if kind == "table":
+			self.taskLicenseTable(dlg, els)
+		elif kind == "offer":
+			say(self.offerText(els) or label)
+		elif kind == "buy":
+			if self.confirmBuy("Enter lub Spację"):
+				self.press(el)
+				say("Subskrybuj teraz, otwieram stronę zakupu")
+		elif kind == "check":
+			try:
+				pat = el.GetCurrentPattern(UIA.UIA_TogglePatternId).QueryInterface(UIA.IUIAutomationTogglePattern)
+				pat.Toggle()
+			except (comtypes.COMError, AttributeError, ValueError):
+				self.press(el)
+			time.sleep(0.2)
+			say("%s: %s" % (label, self.toggleText(el)))
+		else:
+			self.press(el)
+			say(label)
+
+	def licenseCells(self, table):
+		"""Widoczne komórki tabeli: (wiersz, kolumna, lewo, góra, prawo, dół)."""
+		out = []
+		for ch in self.children(table):
+			try:
+				if ch.CurrentControlType != DATAITEM_TYPE:
+					continue
+				r = ch.CurrentBoundingRectangle
+				if r.right <= r.left or r.bottom <= r.top:
+					continue  # ukryta kolumna (np. Licencja)
+				row = int(ch.GetCurrentPropertyValue(UIA.UIA_GridItemRowPropertyId))
+				col = int(ch.GetCurrentPropertyValue(UIA.UIA_GridItemColumnPropertyId))
+			except (comtypes.COMError, TypeError, ValueError):
+				continue
+			out.append((row, col, r.left, r.top, r.right, r.bottom))
+		return out
+
+	def licenseHeaders(self, table):
+		"""Nazwy kolumn i dolna krawędź nagłówka tabeli."""
+		names, bottom = [], None
+		for ch in self.children(table):
+			try:
+				if ch.CurrentControlType != HEADER_TYPE:
+					continue
+				names.append((ch.CurrentName or "").strip())
+				r = ch.CurrentBoundingRectangle
+				if r.bottom > r.top:
+					bottom = max(bottom or r.bottom, r.bottom)
+			except comtypes.COMError:
+				continue
+		return names, bottom
+
+	def licenseMakeVisible(self, hwnd, table):
+		"""StreamFab otwiera okno Licencja częściowo pod paskiem zadań — przesuwa je tak, by tabela była cała na ekranie."""
+		wa = workArea(hwnd)
+		if not wa:
+			return
+		r = table.CurrentBoundingRectangle
+		dy = 0
+		if r.bottom > wa[3]:
+			dy = wa[3] - r.bottom
+		if r.top + dy < wa[1]:
+			dy = wa[1] - r.top
+		if not dy:
+			return
+		wr = ctypes.wintypes.RECT()
+		if not _user32.GetWindowRect(hwnd, ctypes.byref(wr)):
+			return
+		_user32.SetWindowPos(hwnd, None, wr.left, wr.top + dy, 0, 0, 0x0001 | 0x0004 | 0x0010)  # bez zmiany rozmiaru, kolejności i aktywacji
+		time.sleep(0.4)
+
+	def licenseScan(self, dlg, table, bar, total):
+		"""Komórki tabeli licencji StreamFab rysuje bez tekstu (UIA podaje puste nazwy), więc
+		przewijamy tabelę paskiem przewijania i rozpoznajemy widoczne wiersze OCR Windows.
+		Wiersz i kolumnę każdego słowa wyznaczają prostokąty komórek z UIA. Zwraca {wiersz: {kolumna: tekst}}."""
+		hwnd = rootWindow(self.nativeHandle(dlg))
+		if hwnd:
+			if winUser.getForegroundWindow() != hwnd:
+				ctypes.windll.user32.SetForegroundWindow(hwnd)
+				time.sleep(0.2)
+			self.licenseMakeVisible(hwnd, table)
+		rv = None
+		if bar:
+			try:
+				rv = bar.GetCurrentPattern(UIA.UIA_RangeValuePatternId).QueryInterface(UIA.IUIAutomationRangeValuePattern)
+				orig, maxv = rv.CurrentValue, int(rv.CurrentMaximum)
+			except (comtypes.COMError, AttributeError, ValueError):
+				rv = None
+		# readings[wiersz][kolumna] = [(tekst, pozycja wiersza w widoku)]; przebiegi zachodzą na siebie o jeden wiersz,
+		# więc wiersz zasłonięty u góry (np. przez pływające okienko innego programu) odczytujemy drugi raz niżej.
+		readings = {}
+		v = 0
+		try:
+			for _ in range(max(total, 1) + 10):
+				if rv:
+					rv.SetValue(float(v))
+					time.sleep(0.25)
+				tr = table.CurrentBoundingRectangle
+				_, headBottom = self.licenseHeaders(table)
+				wa = (workArea(hwnd) if hwnd else None) or (tr.left, tr.top, tr.right, tr.bottom)
+				clip = (max(tr.left, wa[0]), max(headBottom or tr.top, tr.top, wa[1]),
+					min(tr.right, wa[2]), min(tr.bottom, wa[3]))
+				cells = [c for c in self.licenseCells(table) if c[3] >= clip[1] - 2 and c[5] <= clip[3] + 2]
+				visible = sorted({c[0] for c in cells})
+				if cells and clip[2] - clip[0] > 20 and clip[3] - clip[1] > 20:
+					words = ocrWords(clip[0], clip[1], clip[2] - clip[0], clip[3] - clip[1])
+					for row, col, l, t, r, b in cells:
+						ws = [w for w in words if l <= (w[0] + w[2]) / 2 <= r and t <= (w[1] + w[3]) / 2 <= b]
+						ws.sort(key=lambda w: (w[1] // 8, w[0]))
+						text = cleanCell(" ".join(w[4] for w in ws), stateColumn=(col == 2))
+						cols = readings.setdefault(row, {})
+						if text:
+							cols.setdefault(col, []).append((text, visible.index(row)))
+				if not rv or v >= maxv:
+					break
+				v = min(maxv, v + max(1, len(visible) - 1))
+		finally:
+			if rv:
+				try:
+					rv.SetValue(float(orig))
+				except comtypes.COMError:
+					pass
+		# Z kilku odczytów komórki wybieramy tekst najczęstszy w całej kolumnie (np. „Dożywotni”),
+		# potem odczyt spoza górnego wiersza widoku, potem dłuższy.
+		freq = {}
+		for cols in readings.values():
+			for col, lst in cols.items():
+				for text, _ in lst:
+					freq[(col, text)] = freq.get((col, text), 0) + 1
+		rows = {}
+		for row, cols in readings.items():
+			rows[row] = {col: max(lst, key=lambda x: (freq[(col, x[0])], x[1] > 0, len(x[0])))[0]
+				for col, lst in cols.items()}
+		return rows
+
+	def taskLicenseTable(self, dlg=None, els=None):
+		dlg = dlg or self.licenseDialog()
+		if not dlg:
+			say("Okno Licencja nie jest otwarte")
+			return
+		els = els or self.licenseElements(dlg)
+		table = els.get("tableWidgetLicense")
+		if not table:
+			say("Tabela licencji jest niedostępna")
+			return
+		heads, _ = self.licenseHeaders(table)
+		if not self.licRows:
+			total = self.licenseRowCount(table)
+			say("Odczytuję tabelę licencji, %s. To potrwa kilka sekund." % plural(total, "wiersz", "wiersze", "wierszy"))
+			try:
+				rows = self.licenseScan(dlg, table, els.get("licenseInfoOverlayScrollBar"), total)
+			except Exception as e:
+				log.warning("StreamFab dostęp: OCR tabeli licencji nie powiódł się", exc_info=True)
+				say("Nie udało się odczytać tabeli licencji: %s. Jeśli włączona jest kurtyna ekranowa, wyłącz ją "
+					"(NVDA+Ctrl+Escape) i spróbuj ponownie." % e)
+				return
+			if not any(rows.values()):
+				say("Nie udało się odczytać tabeli licencji. Okno StreamFab musi być widoczne na ekranie.")
+				return
+			self.licRows = rows
+		labels = {0: "Opcja", 1: "Licencja", 2: "Stan", 3: "Akcja"}
+		for i, h in enumerate(heads):
+			if h and h != "Stan licencji":
+				labels[i] = h
+		lines = []
+		for r in sorted(self.licRows):
+			cells = self.licRows[r]
+			parts = ["%s: %s" % (labels.get(c, "Kolumna %d" % (c + 1)), t) for c, t in sorted(cells.items())]
+			lines.append(", ".join(parts) if parts else "Wiersz %d: nie udało się odczytać" % (r + 1))
+		head = ["Licencje StreamFab: " + plural(len(lines), "wiersz", "wiersze", "wierszy") + "."]
+		states = self.licenseStates()
+		if states:
+			head.append("Stany licencji: " + states + ".")
+		reg = readRegLicenses()
+		if reg:
+			head.append(reg[:1].upper() + reg[1:] + ".")
+		head.append("Tekst odczytany z ekranu (OCR), możliwe drobne błędy w nazwach. Escape zamyka to okno.")
+		say("Otwieram listę licencji. Escape zamyka okno.")
+		queueHandler.queueFunction(queueHandler.eventQueue, showText, head + lines, "StreamFab — licencje")
 
 
 def uiaClass(obj):
@@ -1258,6 +1794,7 @@ class AppModule(appModuleHandler.AppModule):
 		self.worker.onDialogChange = self._setDialogGestures
 		self.worker.start()
 		self._dialogGestures = False
+		self._licenseMode = False  # otwarte okno Licencja: własny Tab, Enter i Spacja
 		self._lastCombo = None
 		self._lastStateEvent = 0.0
 		self._films = []
@@ -1269,7 +1806,18 @@ class AppModule(appModuleHandler.AppModule):
 
 	# Klawisze nawigacji przechwytujemy tylko wtedy, gdy otwarte jest okno StreamFab,
 	# żeby nie przeszkadzać trybowi przeglądania na stronach WWW.
-	def _setDialogGestures(self, on):
+	def _setDialogGestures(self, on, cls=""):
+		lic = bool(on) and cls == LICENSE_CLASS
+		if lic != self._licenseMode:
+			self._licenseMode = lic
+			for g in LICENSE_GESTURES:
+				if lic:
+					self.bindGesture(g, "licenseActivate")
+				else:
+					try:
+						self.removeGestureBinding(g)
+					except LookupError:
+						pass
 		if on == self._dialogGestures:
 			return
 		self._dialogGestures = on
@@ -1286,6 +1834,11 @@ class AppModule(appModuleHandler.AppModule):
 	@script(description="W otwartym oknie StreamFab: Tab, Shift+Tab, strzałka w górę lub w dół — "
 		"przekazuje klawisz i czyta element, który naprawdę ma fokus", category=CATEGORY)
 	def script_passNavKey(self, gesture):
+		if self._licenseMode and getattr(gesture, "mainKeyName", "") == "tab":
+			# okno Licencja: Tab utyka w tabeli, więc prowadzimy własny cykl po elementach okna
+			step = -1 if "shift" in (getattr(gesture, "modifierNames", None) or ()) else 1
+			self.worker.tasks.put(lambda: self.worker.taskLicenseTab(step))
+			return
 		gesture.send()
 		core.callLater(250, self._syncFocus)
 		self.worker.tasks.put(self.worker.taskHiddenFocus)
@@ -1324,6 +1877,9 @@ class AppModule(appModuleHandler.AppModule):
 		"nowy stan; na liście Język audio lub Napisy otwiera listę", category=CATEGORY)
 	def script_toggleItem(self, gesture):
 		# Spacja na odcinku lub języku: Qt zmienia zaznaczenie bez komunikatu, więc go dopowiadamy.
+		if self._licenseMode and self.worker.licCur:
+			self.worker.tasks.put(self.worker.taskLicenseActivate)
+			return
 		focus = api.getFocusObject()
 		if isinstance(focus, MultiSelCombo):
 			focus.expand()
@@ -1354,6 +1910,14 @@ class AppModule(appModuleHandler.AppModule):
 		self._lastCombo = None
 		keyboardHandler.KeyboardInputGesture.fromName("enter").send()
 		core.callLater(300, self._syncAfterClose)
+
+	@script(description="Enter w oknie Licencja: wykonuje akcję elementu wybranego Tabem (otwiera listę licencji, "
+		"przełącza pole, naciska przycisk; Subskrybuj teraz dopiero po potwierdzeniu)", category=CATEGORY)
+	def script_licenseActivate(self, gesture):
+		if not self._licenseMode or not self.worker.licCur:
+			gesture.send()
+			return
+		self.worker.tasks.put(self.worker.taskLicenseActivate)
 
 	def _syncAfterClose(self):
 		"""Tylko czytamy to, co Qt naprawdę ma w fokusie — niczego nie przestawiamy."""
@@ -1407,6 +1971,9 @@ class AppModule(appModuleHandler.AppModule):
 		role = obj.role
 		if role in ITEM_ROLES and obj.name:
 			self._cleanItem(obj)
+			return
+		if self._licenseMode and role == controlTypes.Role.DATAITEM and not obj.name:
+			self._nameLicenseCell(obj)
 			return
 		if not aid:
 			if obj.name:
@@ -1481,6 +2048,21 @@ class AppModule(appModuleHandler.AppModule):
 		except Exception:
 			pass
 		return False
+
+	def _nameLicenseCell(self, obj):
+		"""Komórki tabeli licencji są rysowane bez tekstu — po odczycie tabeli (OCR) podajemy treść wiersza."""
+		try:
+			row = obj._getUIACacheablePropertyValue(UIA.UIA_GridItemRowPropertyId)
+		except Exception:
+			return
+		if not isinstance(row, int):
+			return
+		cells = (self.worker.licRows or {}).get(row)
+		if cells:
+			obj.name = ", ".join(t for c, t in sorted(cells.items()))
+		else:
+			obj.name = "Wiersz %d tabeli licencji" % (row + 1)
+			obj.description = "Tab do tabeli, potem Enter: pełna lista licencji"
 
 	def _nameFilmRow(self, obj):
 		"""Wiersze listy pobranych są rysowane bez tekstu — nazwę bierzemy z plików danych programu."""
@@ -1594,6 +2176,11 @@ class AppModule(appModuleHandler.AppModule):
 			"Na liście Język audio lub Napisy: Enter, Alt+strzałka w dół, F4 lub Spacja otwiera listę, Spacja zaznacza język, Enter lub Escape zamyka listę. "
 			"W oknie pobranych filmów: Enter lub Alt+O odtwarza, Alt+F pokazuje w folderze, Alt+K kopiuje ścieżkę, Escape zamyka. "
 			"W oknie kolejki pobierania Escape zamyka. "
+			"W oknie Licencja: Tab i Shift+Tab przechodzą po elementach: tabela licencji, oferta Fab365, Subskrybuj teraz, "
+			"Nie pokazuj ponownie, Rozpocznij StreamFab, Zamknij; Enter lub Spacja wykonuje akcję: na tabeli otwiera pełną listę "
+			"licencji do czytania strzałkami, Escape zamyka listę; pole Nie pokazuj ponownie przełącza; "
+			"Subskrybuj teraz otwiera stronę zakupu dopiero po drugim naciśnięciu. "
+			"Ctrl+Shift+O: Rozpocznij StreamFab. Ctrl+Shift+C: Zamknij. Ctrl+Shift+R: przeczytaj okno Licencja. "
 			"Ctrl+Shift+H: ta pomoc. Skróty zmienisz w NVDA, Ustawienia, Zdarzenia wejścia, kategoria StreamFab dostęp, "
 			"otwierając to okno przy aktywnym StreamFab."
 		)

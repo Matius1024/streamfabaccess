@@ -7,7 +7,7 @@ Dodatek do czytnika ekranu [NVDA](https://www.nvaccess.org/), który poprawia do
 1. Pobierz najnowszą wersję: [streamfabaccess.nvda-addon](https://github.com/Matius1024/streamfabaccess/releases/latest/download/streamfabaccess.nvda-addon) (link zawsze prowadzi do najnowszego wydania; wcześniejsze wersje są w zakładce [Releases](../../releases)).
 2. Otwórz go (Enter w Eksploratorze), potwierdź instalację i uruchom ponownie NVDA.
 
-Wymagany NVDA 2024.1 lub nowszy (testowano z NVDA 2026.3 i StreamFab 7.0.5.6 na Windows 11).
+Wymagany NVDA 2024.1 lub nowszy (testowano z NVDA 2026.3 i StreamFab 7.0.5.7 na Windows 11).
 
 ## Co robi
 
@@ -21,6 +21,7 @@ Wymagany NVDA 2024.1 lub nowszy (testowano z NVDA 2026.3 i StreamFab 7.0.5.6 na 
 - W oknie pobierania serialu czyta odcinki bez angielskich dopisków („Checked”, „Collapsed”), z czasem trwania, i pilnuje, żeby NVDA czytało odcinek, na którym naprawdę jest fokus.
 - Po Spacji na odcinku lub języku mówi „zaznaczone” / „niezaznaczone” i licznik, np. „Wybrano 2 z 19”.
 - Obsługuje logowanie (autoryzację komputera): nazywa pola E-mail i Hasło, ogłasza komunikaty („Weryfikowanie informacji o koncie”, błędy), pozwala kliknąć napisy-linki (Zaloguj przez Google, Zarejestruj, Zapomniane hasło). Gdy po zalogowaniu okno Licencja otworzy się pod oknem logowania, dodatek sam przenosi do niego klawiaturę — trzeba je zamknąć (Ctrl+Shift+C), żeby logowanie się zakończyło.
+- Udostępnia okno Licencja: czyta je po pojawieniu się, ma własny cykl Tab (Tab utykał w tabeli z pustymi komórkami), a tabelę licencji (rysowaną bez tekstu) odczytuje na żądanie przez OCR Windows i pokazuje jako listę do czytania strzałkami.
 - Nadaje polskie nazwy listom Język audio, Napisy, Rozdzielczość i tłumaczy nazwy języków na liście (np. „polski EAC3 5.1”).
 - Listy Język audio i Napisy są czytane jako listy rozwijane z wybranymi językami po polsku (np. „angielski, polski”), a nie jako „edycja tylko do odczytu, en,pl”. Otwiera je Alt+strzałka w dół, Enter, F4 albo Spacja, a zamyka Enter lub Escape (dodatek zamienia Escape na Enter, bo sam Escape zawieszał okno i Tab przestawał działać). Powtórzony język ma licznik, np. „polski (4)”.
 
@@ -54,6 +55,22 @@ Listy Język audio i Napisy: Enter, Alt+Strzałka w dół, F4 lub Spacja otwiera
 
 Okno pobranych filmów (Ctrl+Shift+L): Enter lub Alt+O odtwórz, Alt+F pokaż w folderze, Alt+K kopiuj ścieżkę, Escape zamknij. Okno kolejki (Ctrl+Shift+K): Escape zamyka.
 
+### Okno Licencja
+
+Okno pojawia się po uruchomieniu StreamFab (i po zalogowaniu). Dodatek czyta je automatycznie: „Okno Licencja. StreamFab, Autoryzowany, adres e-mail. Tabela licencji: 72 wiersze”, liczbę opcji z licencją i datę ważności z pliku rejestracji StreamFab oraz podpowiedź skrótów.
+
+Komórki tabeli licencji StreamFab rysuje bez tekstu (czytnik słyszy tylko puste komórki), dlatego Enter na tabeli przewija ją i rozpoznaje widoczne wiersze wbudowanym w NVDA OCR Windows (trwa to kilka–kilkanaście sekund, okno StreamFab musi być widoczne na ekranie; przy włączonej kurtynie ekranowej NVDA próbuje przechwytywania Windows Graphics Capture). Wynik to lista do czytania strzałkami, jeden wiersz na linię, np. „Opcja: Netflix Downloader, Stan: Dożywotni”. Po odczycie komórki tabeli mają nazwy z treścią wiersza. Jeśli tabela wystaje pod pasek zadań, dodatek przesuwa okno w górę.
+
+| Klawisz | Działanie |
+|---|---|
+| Tab / Shift+Tab | Następny / poprzedni element: tabela licencji, oferta Fab365 (po polsku, z ceną), Subskrybuj teraz, Nie pokazuj ponownie, Rozpocznij StreamFab, Zamknij |
+| Enter, Enter numeryczny lub Spacja | Akcja bieżącego elementu: tabela — pełna lista licencji (Escape zamyka listę); oferta — przeczytaj; pole — przełącz; przycisk — naciśnij |
+| Ctrl+Shift+O | Rozpocznij StreamFab |
+| Ctrl+Shift+C | Zamknij okno |
+| Ctrl+Shift+R | Przeczytaj okno (z ofertą i stanem pola Nie pokazuj ponownie) |
+
+„Subskrybuj teraz” otwiera stronę zakupu, więc dodatek naciska go dopiero po drugim naciśnięciu Enter lub Spacji w ciągu 4 sekund (tak samo przy Ctrl+Shift+Enter w przeglądaniu przycisków). Nie ma on własnego skrótu.
+
 ### Okno aktualizacji StreamFab (StreamUpdate.exe)
 
 Osobny moduł `streamupdate.py`: okno jest czytane automatycznie po polsku, przyciski i pole beta mają polskie nazwy, a postęp aktualizacji jest ogłaszany co kilka procent.
@@ -76,7 +93,7 @@ Okno aktualizacji nie przepuszcza Tab do przycisków, dlatego działa w nim wła
 
 ### Zmiana skrótów
 
-Każdy skrót obu modułów ma polski opis i można go zmienić w NVDA: Ustawienia → Zdarzenia wejścia → kategoria „StreamFab dostęp” (wspólna dla obu modułów). Skróty modułu widać tam tylko wtedy, gdy okno Zdarzeń wejścia otworzysz przy aktywnym StreamFab (skróty StreamFab) albo przy aktywnym oknie aktualizacji (skróty okna aktualizacji). Tab, Shift+Tab, strzałki, Spacja i Escape w StreamFab mają przypisany klawisz tylko wtedy, gdy w StreamFab jest otwarte okno, a otwieranie listy języków widać, gdy fokus jest na liście Język audio lub Napisy.
+Każdy skrót obu modułów ma polski opis i można go zmienić w NVDA: Ustawienia → Zdarzenia wejścia → kategoria „StreamFab dostęp” (wspólna dla obu modułów). Skróty modułu widać tam tylko wtedy, gdy okno Zdarzeń wejścia otworzysz przy aktywnym StreamFab (skróty StreamFab) albo przy aktywnym oknie aktualizacji (skróty okna aktualizacji). Tab, Shift+Tab, strzałki, Spacja i Escape (a w oknie Licencja także Enter) w StreamFab mają przypisany klawisz tylko wtedy, gdy w StreamFab jest otwarte okno, a otwieranie listy języków widać, gdy fokus jest na liście Język audio lub Napisy.
 
 Pełna dokumentacja: [addon/doc/pl/readme.html](addon/doc/pl/readme.html) (dostępna też w Menedżerze dodatków NVDA).
 
