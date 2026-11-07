@@ -196,7 +196,11 @@ LICENSE_TAB = (
 # Przyciski, które otwierają stronę zakupu — naciskamy je dopiero po potwierdzeniu.
 BUY_BUTTONS = ("pushButton_upgrade",)
 BUY_CONFIRM_SECONDS = 4.0
-LICENSE_HINT = ("Tab i Shift+Tab przechodzą po elementach okna, Enter lub Spacja wykonuje akcję; "
+# Jak przejść dalej: okno Licencja blokuje StreamFab, dopóki się go nie zamknie.
+LICENSE_NEXT = ("Aby przejść dalej do StreamFab, naciśnij Ctrl+Shift+O, Rozpocznij StreamFab, to zalecane, "
+	"albo Ctrl+Shift+C, Zamknij. Żeby okno nie pojawiało się przy każdym starcie, najpierw naciśnij Tab 4 razy, "
+	"do pola Nie pokazuj ponownie, i naciśnij Spację. ")
+LICENSE_HINT = (LICENSE_NEXT + "Tab i Shift+Tab przechodzą po elementach okna, Enter lub Spacja wykonuje akcję; "
 	"na tabeli licencji Enter otwiera pełną listę do czytania strzałkami. "
 	"Ctrl+Shift+O: Rozpocznij StreamFab. Ctrl+Shift+C: Zamknij. Ctrl+Shift+R: przeczytaj okno. Ctrl+Shift+H: pomoc.")
 # Tekst oferty Fab365 (StreamFab pokazuje go po angielsku), tłumaczony wiersz po wierszu.
@@ -2176,7 +2180,7 @@ class AppModule(appModuleHandler.AppModule):
 			"Na liście Język audio lub Napisy: Enter, Alt+strzałka w dół, F4 lub Spacja otwiera listę, Spacja zaznacza język, Enter lub Escape zamyka listę. "
 			"W oknie pobranych filmów: Enter lub Alt+O odtwarza, Alt+F pokazuje w folderze, Alt+K kopiuje ścieżkę, Escape zamyka. "
 			"W oknie kolejki pobierania Escape zamyka. "
-			"W oknie Licencja: Tab i Shift+Tab przechodzą po elementach: tabela licencji, oferta Fab365, Subskrybuj teraz, "
+			"W oknie Licencja: " + LICENSE_NEXT + "Tab i Shift+Tab przechodzą po elementach: tabela licencji, oferta Fab365, Subskrybuj teraz, "
 			"Nie pokazuj ponownie, Rozpocznij StreamFab, Zamknij; Enter lub Spacja wykonuje akcję: na tabeli otwiera pełną listę "
 			"licencji do czytania strzałkami, Escape zamyka listę; pole Nie pokazuj ponownie przełącza; "
 			"Subskrybuj teraz otwiera stronę zakupu dopiero po drugim naciśnięciu. "

@@ -57,7 +57,15 @@ Okno pobranych filmów (Ctrl+Shift+L): Enter lub Alt+O odtwórz, Alt+F pokaż w 
 
 ### Okno Licencja
 
-Okno pojawia się po uruchomieniu StreamFab (i po zalogowaniu). Dodatek czyta je automatycznie: „Okno Licencja. StreamFab, Autoryzowany, adres e-mail. Tabela licencji: 72 wiersze”, liczbę opcji z licencją i datę ważności z pliku rejestracji StreamFab oraz podpowiedź skrótów.
+Okno pojawia się po uruchomieniu StreamFab (i po zalogowaniu). Dodatek czyta je automatycznie: „Okno Licencja. StreamFab, Autoryzowany, adres e-mail. Tabela licencji: 72 wiersze”, liczbę opcji z licencją i datę ważności z pliku rejestracji StreamFab oraz podpowiedź: najpierw jak przejść dalej, potem skróty.
+
+#### Jak przejść dalej
+
+Okno Licencja blokuje StreamFab, dopóki go nie zamkniesz. Żeby przejść dalej do programu:
+
+1. (Opcjonalnie, żeby okno nie pojawiało się przy każdym starcie) naciśnij Tab 4 razy — NVDA powie „Nie pokazuj ponownie, pole wyboru, niezaznaczone” — i naciśnij Spację (lub Enter); NVDA powie „Nie pokazuj ponownie: zaznaczone”. Gdy któryś element okna jest nieaktywny, naciśnięć może być mniej — słuchaj nazwy pola. Od końca: 3 razy Shift+Tab.
+2. Naciśnij Ctrl+Shift+O — przycisk Rozpocznij StreamFab (zalecane). Okno się zamyka i można korzystać z programu.
+3. Zamiast tego możesz nacisnąć Ctrl+Shift+C — przycisk Zamknij, który również zamyka okno Licencja (tak kończy się logowanie, gdy okno pojawi się po zalogowaniu).
 
 Komórki tabeli licencji StreamFab rysuje bez tekstu (czytnik słyszy tylko puste komórki), dlatego Enter na tabeli przewija ją i rozpoznaje widoczne wiersze wbudowanym w NVDA OCR Windows (trwa to kilka–kilkanaście sekund, okno StreamFab musi być widoczne na ekranie; przy włączonej kurtynie ekranowej NVDA próbuje przechwytywania Windows Graphics Capture). Wynik to lista do czytania strzałkami, jeden wiersz na linię, np. „Opcja: Netflix Downloader, Stan: Dożywotni”. Po odczycie komórki tabeli mają nazwy z treścią wiersza. Jeśli tabela wystaje pod pasek zadań, dodatek przesuwa okno w górę.
 
