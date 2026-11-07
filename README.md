@@ -47,6 +47,8 @@ Wymagany NVDA 2024.1 lub nowszy (testowano z NVDA 2026.3 i StreamFab 7.0.5.6 na 
 
 Osobny moduł `streamupdate.py`: okno jest czytane automatycznie po polsku, przyciski i pole beta mają polskie nazwy, a postęp aktualizacji jest ogłaszany co kilka procent.
 
+Od 0.6.3 w oknie aktualizacji działa własny Tab / Shift+Tab (tabela wersji, Co nowego, Historia zmian, pole beta, Pomiń tę wersję, Uaktualnij teraz, Anuluj, Minimalizuj, Zamknij); Enter i Spacja wykonują akcję bieżącego elementu.
+
 | Skrót | Działanie |
 |---|---|
 | Ctrl+Shift+R | Przeczytaj okno ponownie |

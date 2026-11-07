@@ -80,7 +80,19 @@ TABLE_TYPE = 50036
 PROGRESS_TYPE = 50012
 HINT = ("Skróty: Ctrl+Shift+U lub O uaktualnij teraz, Ctrl+Shift+P pomiń wersję, Ctrl+Shift+C anuluj, "
 	"Ctrl+Shift+I co nowego, Ctrl+Shift+M historia zmian, Ctrl+Shift+B aktualizacje beta, "
-	"Ctrl+Shift+R przeczytaj okno, Ctrl+Shift+H pomoc.")
+	"Ctrl+Shift+R przeczytaj okno, Ctrl+Shift+H pomoc. Tab przechodzi do przycisków.")
+# Własny cykl Tab: (ostatni człon AutomationId, rodzaj, polska nazwa, rola mówiona).
+TAB_ORDER = (
+	("tableView_update", "table", "Tabela wersji", "tabela"),
+	("textBrowser", "text", "Co nowego", "pole tekstowe, Ctrl+Shift+I czyta"),
+	("label_more", "link", "Historia zmian", "link"),
+	("checkBox_allowBeta", "check", "Otrzymuj aktualizacje w wersji beta", "pole wyboru"),
+	("pushButton_skipVersion", "button", "Pomiń tę wersję", "przycisk"),
+	("pushButton_updateNow", "button", "Uaktualnij teraz", "przycisk"),
+	("pushButton_cancel", "button", "Anuluj", "przycisk"),
+	("pushButton_min", "button", "Minimalizuj", "przycisk"),
+	("pushButton_close", "button", "Zamknij", "przycisk"),
+)
 _PCT = re.compile(r"(\d+(?:[.,]\d+)?)\s*%")
 
 
@@ -113,6 +125,7 @@ class Worker(threading.Thread):
 		self.present = False
 		self.seen = {}  # klucz elementu -> ostatnio ogłoszona wartość (tekst lub procent)
 		self.shownAt = 0.0
+		self.cur = None  # klucz bieżącego elementu własnego cyklu Tab
 
 	def run(self):
 		comtypes.CoInitializeEx(comtypes.COINIT_MULTITHREADED)
@@ -259,12 +272,14 @@ class Worker(threading.Thread):
 	def poll(self):
 		items = self.snapshot()
 		if not items:
+			self.cur = None
 			if self.present:
 				self.present = False
 				self.seen.clear()
 			return
 		if not self.present:
 			self.present = True
+			self.cur = None
 			self.seen.clear()
 			self.shownAt = time.monotonic()
 			self.remember(items)
@@ -417,6 +432,92 @@ class Worker(threading.Thread):
 		say("Aktualizacje beta: " + self.toggleState(it["el"]))
 
 
+	# --- własny Tab ---
+	def tabItems(self, items):
+		"""Elementy cyklu Tab, które istnieją, są włączone i widoczne."""
+		out = []
+		for key, kind, label, role in TAB_ORDER:
+			it = self.byLast(items, key)
+			if not it:
+				continue
+			try:
+				if not it["el"].CurrentIsEnabled or it["el"].CurrentIsOffscreen:
+					continue
+			except comtypes.COMError:
+				continue
+			out.append((key, kind, label, role, it))
+		return out
+
+	def checkText(self, el):
+		try:
+			pat = el.GetCurrentPattern(UIA.UIA_TogglePatternId).QueryInterface(UIA.IUIAutomationTogglePattern)
+			return "zaznaczone" if pat.CurrentToggleState == 1 else "niezaznaczone"
+		except (comtypes.COMError, AttributeError, ValueError):
+			return "stan nieznany"
+
+	def taskTab(self, step):
+		items = self.snapshot()
+		if not items:
+			say("Okno aktualizacji StreamFab nie jest otwarte.")
+			return
+		seq = self.tabItems(items)
+		if not seq:
+			say("Brak elementów do przejścia.")
+			return
+		keys = [k[0] for k in seq]
+		if self.cur in keys:
+			idx = (keys.index(self.cur) + step) % len(seq)
+		else:
+			idx = 0 if step > 0 else len(seq) - 1
+		key, kind, label, role, it = seq[idx]
+		self.cur = key
+		try:
+			it["el"].SetFocus()
+		except Exception:
+			pass
+		if kind == "table":
+			_, rows = self.table(items)
+			if rows:
+				label = "Tabela wersji: " + "; ".join(self.rowText(r) for r in rows)
+				role = ""
+		elif kind == "check":
+			role = "pole wyboru, " + self.checkText(it["el"])
+		elif kind == "link" and it["name"]:
+			label = tr(it["name"]) if tr(it["name"]) != it["name"] else label
+		say("%s, %s" % (label, role) if role else label)
+
+	def taskActivate(self):
+		items = self.snapshot()
+		if not items:
+			say("Okno aktualizacji StreamFab nie jest otwarte.")
+			return
+		seq = {k[0]: k for k in self.tabItems(items)}
+		entry = seq.get(self.cur)
+		if not entry:
+			say("Element jest niedostępny.")
+			return
+		key, kind, label, role, it = entry
+		if kind == "button":
+			self.press(it["el"])
+			say(label)
+		elif kind == "link":
+			self.click(it["el"])
+			say("Otwieram historię zmian")
+		elif kind == "check":
+			try:
+				pat = it["el"].GetCurrentPattern(UIA.UIA_TogglePatternId).QueryInterface(UIA.IUIAutomationTogglePattern)
+				pat.Toggle()
+			except (comtypes.COMError, AttributeError, ValueError):
+				self.press(it["el"])
+			time.sleep(0.2)
+			say("%s: %s" % (label, self.checkText(it["el"])))
+		elif kind == "text":
+			self.taskWhatsNew()
+		else:
+			_, rows = self.table(items)
+			say("Tabela wersji: " + "; ".join(self.rowText(r) for r in rows) if rows else "Tabela jest pusta.")
+
+
 class AppModule(appModuleHandler.AppModule):
 
 	def __init__(self, *args, **kwargs):
@@ -511,3 +612,26 @@ class AppModule(appModuleHandler.AppModule):
 	@script(description="Czyta listę skrótów okna aktualizacji", category=CATEGORY, gesture="kb:control+shift+h")
 	def script_help(self, gesture):
 		ui.message(HINT + " Ctrl+Shift+A: ogłaszanie zmian.")
+
+	# --- własny Tab (okno aktualizacji nie dopuszcza Tab do przycisków) ---
+	def _tab(self, gesture, step):
+		if not self.worker.present:
+			gesture.send()
+			return
+		self._put(lambda: self.worker.taskTab(step))
+
+	@script(description="Następny element okna aktualizacji", category=CATEGORY, gesture="kb:tab")
+	def script_tabNext(self, gesture):
+		self._tab(gesture, 1)
+
+	@script(description="Poprzedni element okna aktualizacji", category=CATEGORY, gesture="kb:shift+tab")
+	def script_tabPrev(self, gesture):
+		self._tab(gesture, -1)
+
+	@script(description="Wykonuje akcję bieżącego elementu okna aktualizacji", category=CATEGORY,
+		gestures=["kb:enter", "kb:space", "kb:numpadEnter"])
+	def script_activate(self, gesture):
+		if not self.worker.present or self.worker.cur is None:
+			gesture.send()
+			return
+		self._put(self.worker.taskActivate)
