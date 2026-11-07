@@ -1223,6 +1223,8 @@ class MultiSelCombo(NVDAObjects.UIA.UIA):
 		import keyboardHandler
 		keyboardHandler.KeyboardInputGesture.fromName("alt+downArrow").send()
 
+	@script(description="Na liście Język audio lub Napisy: otwiera listę języków (Enter, Alt+strzałka w dół lub F4)",
+		category=CATEGORY)
 	def script_expand(self, gesture):
 		self.expand()
 
@@ -1280,6 +1282,9 @@ class AppModule(appModuleHandler.AppModule):
 				except LookupError:
 					pass
 
+	# Skrypty poniżej są wiązane z klawiszami tylko przy otwartym oknie StreamFab (_setDialogGestures).
+	@script(description="W otwartym oknie StreamFab: Tab, Shift+Tab, strzałka w górę lub w dół — "
+		"przekazuje klawisz i czyta element, który naprawdę ma fokus", category=CATEGORY)
 	def script_passNavKey(self, gesture):
 		gesture.send()
 		core.callLater(250, self._syncFocus)
@@ -1315,8 +1320,10 @@ class AppModule(appModuleHandler.AppModule):
 			return None
 		return controlTypes.State.CHECKED in states
 
+	@script(description="Spacja w otwartym oknie StreamFab: zaznacza lub odznacza odcinek albo język i ogłasza "
+		"nowy stan; na liście Język audio lub Napisy otwiera listę", category=CATEGORY)
 	def script_toggleItem(self, gesture):
-		"""Spacja na odcinku lub języku: Qt zmienia zaznaczenie bez komunikatu, więc go dopowiadamy."""
+		# Spacja na odcinku lub języku: Qt zmienia zaznaczenie bez komunikatu, więc go dopowiadamy.
 		focus = api.getFocusObject()
 		if isinstance(focus, MultiSelCombo):
 			focus.expand()
@@ -1326,9 +1333,11 @@ class AppModule(appModuleHandler.AppModule):
 		gesture.send()
 		core.callLater(250, self._afterToggle, before, pressed)
 
+	@script(description="Escape w otwartym oknie StreamFab: zamyka rozwiniętą listę języków bez zawieszania okna; "
+		"poza listą działa zwykły Escape", category=CATEGORY)
 	def script_escape(self, gesture):
-		"""Escape w otwartej liście języków: StreamFab jej nie zamyka, więc zwijamy ją przez UIA
-		i oddajemy fokus polu Język audio / Napisy."""
+		# Escape w otwartej liście języków: StreamFab jej nie zamyka, więc zwijamy ją
+		# i oddajemy fokus polu Język audio / Napisy.
 		combo = self._lastCombo
 		expanded = False
 		if combo is not None:
@@ -1579,6 +1588,12 @@ class AppModule(appModuleHandler.AppModule):
 			"Ctrl+Shift+L: lista pobranych filmów. Ctrl+Shift+K: kolejka pobierania. Ctrl+Shift+A: ogłaszanie zmian i nowych okien. "
 			"W oknach dialogowych: Ctrl+Shift+O: OK. Ctrl+Shift+C: Anuluj lub Zamknij. "
 			"Ctrl+Shift+strzałka w prawo lub w lewo: przeglądanie przycisków. Ctrl+Shift+Enter: naciśnij wybrany. "
-			"Ctrl+Shift+R: przeczytaj okno. Ctrl+Shift+W: przejdź do kolejnego okna StreamFab. W oknie pobierania serialu Spacja zaznacza odcinek lub język. "
-			"Ctrl+Shift+H: ta pomoc."
+			"Ctrl+Shift+R: przeczytaj okno. Ctrl+Shift+W: przejdź do kolejnego okna StreamFab. "
+			"Gdy w StreamFab jest otwarte okno: Tab, Shift+Tab, strzałka w górę i w dół czytają element, który naprawdę ma fokus; "
+			"Spacja zaznacza lub odznacza odcinek albo język i mówi nowy stan; Escape zamyka rozwiniętą listę języków. "
+			"Na liście Język audio lub Napisy: Enter, Alt+strzałka w dół, F4 lub Spacja otwiera listę, Spacja zaznacza język, Enter lub Escape zamyka listę. "
+			"W oknie pobranych filmów: Enter lub Alt+O odtwarza, Alt+F pokazuje w folderze, Alt+K kopiuje ścieżkę, Escape zamyka. "
+			"W oknie kolejki pobierania Escape zamyka. "
+			"Ctrl+Shift+H: ta pomoc. Skróty zmienisz w NVDA, Ustawienia, Zdarzenia wejścia, kategoria StreamFab dostęp, "
+			"otwierając to okno przy aktywnym StreamFab."
 		)

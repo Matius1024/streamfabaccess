@@ -12,7 +12,7 @@ kbd { font-family: inherit; font-weight: bold; }
 </head>
 <body>
 <h1>StreamFab dostęp</h1>
-<p>Wersja 0.4.1. Dodatek do czytnika ekranu NVDA, który poprawia dostępność programu StreamFab (StreamFab64.exe) dla osób niewidomych.</p>
+<p>Wersja 0.6.4. Dodatek do czytnika ekranu NVDA, który poprawia dostępność programu StreamFab (StreamFab64.exe) i jego okna aktualizacji (StreamUpdate.exe) dla osób niewidomych.</p>
 
 <h2>Spis treści</h2>
 <ul>
@@ -43,7 +43,7 @@ kbd { font-family: inherit; font-weight: bold; }
 <h2 id="instalacja">Instalacja i usuwanie</h2>
 <h3>Instalacja</h3>
 <ol>
-<li>Otwórz plik <code>streamFabDostep-0.4.1.nvda-addon</code> (zaznacz go w Eksploratorze i naciśnij Enter).</li>
+<li>Otwórz plik <code>streamfabaccess.nvda-addon</code> pobrany z GitHuba (lub <code>streamFabDostep-0.6.4.nvda-addon</code>) — zaznacz go w Eksploratorze i naciśnij Enter.</li>
 <li>NVDA zapyta, czy zainstalować dodatek. Wybierz <kbd>Tak</kbd>. Jeśli starsza wersja jest już zainstalowana, NVDA zaproponuje jej aktualizację.</li>
 <li>Uruchom ponownie NVDA, gdy o to poprosi.</li>
 </ol>
@@ -51,10 +51,16 @@ kbd { font-family: inherit; font-weight: bold; }
 <h3>Usuwanie</h3>
 <p>Menu NVDA (<kbd>NVDA+N</kbd>) → Narzędzia → Menedżer dodatków (Sklep z dodatkami) → zakładka Zainstalowane → „StreamFab dostęp” → Usuń. Następnie uruchom ponownie NVDA.</p>
 <h3>Zmiana skrótów</h3>
-<p>Wszystkie skróty można zmienić w menu NVDA → Ustawienia → Zdarzenia wejścia, w kategorii „StreamFab dostęp”. Kategoria jest widoczna, gdy okno StreamFab jest aktywne.</p>
+<p>Wszystkie skróty dodatku mają polskie opisy i można je zmienić w menu NVDA (<kbd>NVDA+N</kbd>) → Ustawienia → Zdarzenia wejścia, w kategorii „StreamFab dostęp” (ta sama kategoria w obu modułach). Skróty modułu widać tam tylko wtedy, gdy okno Zdarzeń wejścia otworzysz przy aktywnym programie, którego dotyczą:</p>
+<ul>
+<li>skróty StreamFab — otwórz Zdarzenia wejścia, gdy aktywne jest okno StreamFab;</li>
+<li>skróty okna aktualizacji (w tym własny <kbd>Tab</kbd>, <kbd>Enter</kbd> i <kbd>Spacja</kbd>) — otwórz Zdarzenia wejścia, gdy aktywne jest okno aktualizacji StreamFab;</li>
+<li>skrót otwierania listy języków (<kbd>Enter</kbd>, <kbd>Alt+Strzałka w dół</kbd>, <kbd>F4</kbd>) — gdy fokus jest na liście Język audio lub Napisy.</li>
+</ul>
+<p>Klawisze <kbd>Tab</kbd>, <kbd>Shift+Tab</kbd>, <kbd>Strzałka w górę</kbd>, <kbd>Strzałka w dół</kbd>, <kbd>Spacja</kbd> i <kbd>Escape</kbd> w StreamFab dodatek przypisuje sam tylko na czas, gdy w StreamFab jest otwarte okno dialogowe; dlatego w Zdarzeniach wejścia mają przypisany klawisz tylko wtedy, gdy takie okno jest otwarte.</p>
 
 <h2 id="skroty">Skróty klawiszowe</h2>
-<p>Skróty działają tylko wtedy, gdy aktywne jest okno StreamFab.</p>
+<p>Skróty z tego rozdziału działają tylko wtedy, gdy aktywne jest okno StreamFab. Skróty okna aktualizacji opisuje rozdział <a href="#aktualizacja">Okno aktualizacji StreamFab</a>.</p>
 <h3>Pobieranie i przeglądarka</h3>
 <table>
 <tr><th>Skrót</th><th>Działanie</th></tr>
@@ -64,7 +70,7 @@ kbd { font-family: inherit; font-weight: bold; }
 <tr><td><kbd>Ctrl+Shift+L</kbd></td><td>Otwiera okno z listą pobranych filmów: Odtwórz, Pokaż w folderze, Kopiuj ścieżkę.</td></tr>
 <tr><td><kbd>Ctrl+Shift+K</kbd></td><td>Otwiera okno kolejki pobierania: tytuł, czas trwania, serwis i stan każdego zadania (czeka, pobieranie trwa, błąd z opisem). Na górze stan pobierania i ile megabajtów już pobrano.</td></tr>
 <tr><td><kbd>Ctrl+Shift+A</kbd></td><td>Włącza lub wyłącza automatyczne ogłaszanie zmian stanu i nowych okien (domyślnie włączone).</td></tr>
-<tr><td><kbd>Ctrl+Shift+H</kbd></td><td>Czyta listę skrótów.</td></tr>
+<tr><td><kbd>Ctrl+Shift+H</kbd></td><td>Czyta wszystkie skróty dodatku dostępne w StreamFab.</td></tr>
 </table>
 <h3>Okna dialogowe</h3>
 <table>
@@ -76,6 +82,21 @@ kbd { font-family: inherit; font-weight: bold; }
 <tr><td><kbd>Ctrl+Shift+R</kbd></td><td>Czyta całą treść okna: tytuł, komunikaty i zawartość pól.</td></tr>
 <tr><td><kbd>Ctrl+Shift+W</kbd></td><td>Przechodzi do kolejnego otwartego okna StreamFab (np. gdy okno logowania zasłania okno Licencja).</td></tr>
 </table>
+<h3>Klawisze w otwartym oknie StreamFab</h3>
+<p>Te klawisze dodatek przechwytuje tylko wtedy, gdy w StreamFab jest otwarte okno (komunikat, menu, okno pobierania, logowanie). Na stronach WWW działają normalnie.</p>
+<table>
+<tr><th>Klawisz</th><th>Działanie</th></tr>
+<tr><td><kbd>Tab</kbd>, <kbd>Shift+Tab</kbd>, <kbd>Strzałka w górę</kbd>, <kbd>Strzałka w dół</kbd></td><td>Działają jak zwykle, a dodatek po nich sprawdza, który element naprawdę ma fokus, i go czyta (np. menu My Account, lista odcinków, rozwinięta lista języków).</td></tr>
+<tr><td><kbd>Spacja</kbd></td><td>Zaznacza lub odznacza odcinek albo język i mówi „zaznaczone” / „niezaznaczone” oraz licznik wybranych odcinków. Na liście Język audio lub Napisy otwiera listę.</td></tr>
+<tr><td><kbd>Escape</kbd></td><td>W rozwiniętej liście języków zamyka ją poprawnie (dodatek wysyła wtedy <kbd>Enter</kbd>, bo sam Escape zawieszał okno). Poza listą działa zwykły Escape.</td></tr>
+</table>
+<h3>Listy Język audio i Napisy</h3>
+<table>
+<tr><th>Klawisz</th><th>Działanie</th></tr>
+<tr><td><kbd>Enter</kbd>, <kbd>Alt+Strzałka w dół</kbd>, <kbd>F4</kbd> lub <kbd>Spacja</kbd></td><td>Otwiera listę języków.</td></tr>
+<tr><td><kbd>Strzałki</kbd> i <kbd>Spacja</kbd></td><td>Wybór języka i jego zaznaczenie (można zaznaczyć kilka).</td></tr>
+<tr><td><kbd>Enter</kbd> lub <kbd>Escape</kbd></td><td>Zamyka listę; potem <kbd>Tab</kbd> przechodzi dalej.</td></tr>
+</table>
 <h3>Okno listy pobranych filmów (Ctrl+Shift+L)</h3>
 <table>
 <tr><th>Klawisz</th><th>Działanie</th></tr>
@@ -84,6 +105,12 @@ kbd { font-family: inherit; font-weight: bold; }
 <tr><td><kbd>Alt+F</kbd></td><td>Otwiera folder z filmem w Eksploratorze i zaznacza plik.</td></tr>
 <tr><td><kbd>Alt+K</kbd></td><td>Kopiuje ścieżkę pliku do schowka.</td></tr>
 <tr><td><kbd>Escape</kbd></td><td>Zamyka okno.</td></tr>
+</table>
+<h3>Okno kolejki pobierania (Ctrl+Shift+K)</h3>
+<table>
+<tr><th>Klawisz</th><th>Działanie</th></tr>
+<tr><td><kbd>Strzałki</kbd></td><td>Przechodzenie po zadaniach (tytuł, czas trwania, serwis, stan).</td></tr>
+<tr><td><kbd>Escape</kbd> lub przycisk Zamknij</td><td>Zamyka okno.</td></tr>
 </table>
 
 <h2 id="dzialanie">Jak działa dodatek</h2>
@@ -115,7 +142,8 @@ kbd { font-family: inherit; font-weight: bold; }
 </ul>
 
 <h2 id="aktualizacja">Okno aktualizacji StreamFab (StreamUpdate.exe)</h2>
-<p>Okno aktualizacji działa w osobnym programie (StreamUpdate.exe), więc ma własny moduł dodatku. Po pojawieniu się okna NVDA sam czyta tytuł, komunikaty po polsku, wiersze tabeli (np. „StreamFab_us (x64): obecna wersja 7.0.5.6, nowa wersja 7.0.5.7, rozmiar 760.5 MB”) i podpowiedź skrótów. Przyciski mają polskie nazwy (Minimalizuj, Zamknij, Pomiń tę wersję, Uaktualnij teraz, Anuluj), a pole wyboru nazywa się „Otrzymuj aktualizacje w wersji beta”. Po rozpoczęciu aktualizacji dodatek ogłasza zmiany tekstów oraz postęp co kilka procent. Tab i Shift+Tab działają standardowo.</p>
+<p>Okno aktualizacji działa w osobnym programie (StreamUpdate.exe), więc ma własny moduł dodatku. Po pojawieniu się okna NVDA sam czyta tytuł, komunikaty po polsku, wiersze tabeli (np. „StreamFab_us (x64): obecna wersja 7.0.5.6, nowa wersja 7.0.5.7, rozmiar 760.5 MB”) i podpowiedź skrótów. Przyciski mają polskie nazwy (Minimalizuj, Zamknij, Pomiń tę wersję, Uaktualnij teraz, Anuluj), a pole wyboru nazywa się „Otrzymuj aktualizacje w wersji beta”. Po rozpoczęciu aktualizacji dodatek ogłasza zmiany tekstów oraz postęp co kilka procent.</p>
+<p>Okno aktualizacji nie przepuszcza klawisza Tab do przycisków (fokus tkwi w tabeli), dlatego dodatek ma w nim własny cykl <kbd>Tab</kbd> / <kbd>Shift+Tab</kbd>: tabela wersji, Co nowego, Historia zmian, pole „Otrzymuj aktualizacje w wersji beta”, Pomiń tę wersję, Uaktualnij teraz, Anuluj, Minimalizuj, Zamknij (pomijane są elementy nieaktywne lub niewidoczne). <kbd>Enter</kbd> lub <kbd>Spacja</kbd> wykonuje akcję bieżącego elementu. Gdy okna aktualizacji nie ma, Tab, Enter i Spacja działają zwykle.</p>
 <table>
 <tr><th>Skrót</th><th>Działanie</th></tr>
 <tr><td><kbd>Ctrl+Shift+R</kbd></td><td>Czyta okno ponownie.</td></tr>
@@ -126,7 +154,9 @@ kbd { font-family: inherit; font-weight: bold; }
 <tr><td><kbd>Ctrl+Shift+M</kbd></td><td>Otwiera historię zmian (kliknięcie linku „Zobacz historię zmian...”).</td></tr>
 <tr><td><kbd>Ctrl+Shift+B</kbd></td><td>Przełącza otrzymywanie aktualizacji beta i podaje nowy stan.</td></tr>
 <tr><td><kbd>Ctrl+Shift+A</kbd></td><td>Włącza lub wyłącza ogłaszanie zmian.</td></tr>
-<tr><td><kbd>Ctrl+Shift+H</kbd></td><td>Czyta listę skrótów.</td></tr>
+<tr><td><kbd>Tab</kbd> / <kbd>Shift+Tab</kbd></td><td>Następny / poprzedni element własnego cyklu Tab (lista powyżej).</td></tr>
+<tr><td><kbd>Enter</kbd>, <kbd>Enter</kbd> na klawiaturze numerycznej lub <kbd>Spacja</kbd></td><td>Akcja bieżącego elementu cyklu Tab: naciska przycisk, przełącza pole beta, otwiera historię zmian, czyta tabelę wersji, a na polu „Co nowego” otwiera okno do czytania (jak <kbd>Ctrl+Shift+I</kbd>).</td></tr>
+<tr><td><kbd>Ctrl+Shift+H</kbd></td><td>Czyta wszystkie skróty okna aktualizacji.</td></tr>
 </table>
 
 <h2 id="okno-pobierania">Okno pobierania serialu lub filmu</h2>
@@ -149,11 +179,14 @@ kbd { font-family: inherit; font-weight: bold; }
 <h2 id="zmiany">Historia zmian</h2>
 <h3>0.6.4</h3>
 <ul>
-<li>Update window: <kbd>Ctrl+Shift+I</kbd> (and <kbd>Enter</kbd> / <kbd>Space</kbd> on the What is new field in the own Tab cycle) opens the What is new text in a browseable window read with the arrow keys, titled with the new version. Each line is a separate paragraph; the text can be selected and copied (e.g. for translation). <kbd>Escape</kbd> closes the window.</li>
+<li>Okno aktualizacji: <kbd>Ctrl+Shift+I</kbd> (oraz <kbd>Enter</kbd> / <kbd>Spacja</kbd> na polu „Co nowego” we własnym cyklu Tab) otwiera tekst „Co nowego” w oknie do czytania strzałkami, z tytułem zawierającym nową wersję. Każda linia jest osobnym akapitem, tekst można zaznaczyć i skopiować (np. do tłumaczenia). <kbd>Escape</kbd> zamyka okno.</li>
+<li>Wszystkie skróty obu modułów (także <kbd>Tab</kbd>, <kbd>Shift+Tab</kbd>, strzałki, <kbd>Spacja</kbd>, <kbd>Escape</kbd> w oknach StreamFab, otwieranie listy języków oraz <kbd>Tab</kbd>, <kbd>Enter</kbd> i <kbd>Spacja</kbd> w oknie aktualizacji) mają polskie opisy w NVDA → Ustawienia → Zdarzenia wejścia, w jednej kategorii „StreamFab dostęp”.</li>
+<li>Pomoc <kbd>Ctrl+Shift+H</kbd> w StreamFab i w oknie aktualizacji wymienia wszystkie skróty modułu.</li>
+<li>Uzupełniona dokumentacja i opis dodatku: pełne tabele skrótów, własny cykl Tab okna aktualizacji, zmiana skrótów w Zdarzeniach wejścia.</li>
 </ul>
 <h3>0.6.3</h3>
 <ul>
-<li>Update window: own <kbd>Tab</kbd> / <kbd>Shift+Tab</kbd> cycle (versions table, What is new, change history, beta checkbox, Skip this version, Update now, Cancel, Minimize, Close), because focus was stuck in the table that swallowed Tab. <kbd>Enter</kbd> and <kbd>Space</kbd> activate the current item.</li>
+<li>Okno aktualizacji: własny cykl <kbd>Tab</kbd> / <kbd>Shift+Tab</kbd> (tabela wersji, Co nowego, Historia zmian, pole beta, Pomiń tę wersję, Uaktualnij teraz, Anuluj, Minimalizuj, Zamknij), bo fokus tkwił w tabeli, która zjadała Tab. <kbd>Enter</kbd> i <kbd>Spacja</kbd> wykonują akcję bieżącego elementu.</li>
 </ul>
 <h3>0.6.2</h3>
 <ul>
@@ -161,7 +194,7 @@ kbd { font-family: inherit; font-weight: bold; }
 </ul>
 <h3>0.6.1</h3>
 <ul>
-<li>Nowy moduł dla okna aktualizacji StreamFab (StreamUpdate.exe): automatyczne czytanie okna po polsku, polskie nazwy przycisków, pola beta i tabeli, ogłaszanie postępu aktualizacji oraz skróty <kbd>Ctrl+Shift+R</kbd>, <kbd>U</kbd>/<kbd>O</kbd>, <kbd>P</kbd>, <kbd>C</kbd>, <kbd>N</kbd>, <kbd>M</kbd>, <kbd>B</kbd>, <kbd>A</kbd>, <kbd>H</kbd>.</li>
+<li>Nowy moduł dla okna aktualizacji StreamFab (StreamUpdate.exe): automatyczne czytanie okna po polsku, polskie nazwy przycisków, pola beta i tabeli, ogłaszanie postępu aktualizacji oraz skróty <kbd>Ctrl+Shift+R</kbd>, <kbd>U</kbd>/<kbd>O</kbd>, <kbd>P</kbd>, <kbd>C</kbd>, <kbd>M</kbd>, <kbd>B</kbd>, <kbd>A</kbd>, <kbd>H</kbd> i skrót czytania „Co nowego” (od 0.6.2 jest to <kbd>Ctrl+Shift+I</kbd>, od 0.6.4 otwiera okno do czytania strzałkami).</li>
 </ul>
 <h3>0.6.0</h3>
 <ul>

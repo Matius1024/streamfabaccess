@@ -40,14 +40,25 @@ Wymagany NVDA 2024.1 lub nowszy (testowano z NVDA 2026.3 i StreamFab 7.0.5.6 na 
 | Ctrl+Shift+R | Przeczytaj treść okna |
 | Ctrl+Shift+W | Przejdź do kolejnego otwartego okna StreamFab (gdy jedno zasłania drugie) |
 | Ctrl+Shift+A | Włącz / wyłącz ogłaszanie zmian |
-| Ctrl+Shift+H | Lista skrótów |
-| Spacja (w oknie pobierania serialu) | Zaznacz / odznacz odcinek lub język i usłysz nowy stan |
+| Ctrl+Shift+H | Wszystkie skróty dodatku w StreamFab |
+
+Klawisze przechwytywane tylko wtedy, gdy w StreamFab jest otwarte okno (na stronach WWW działają normalnie):
+
+| Klawisz | Działanie |
+|---|---|
+| Tab, Shift+Tab, Strzałka w górę / w dół | Działają zwykle, a dodatek czyta element, który naprawdę ma fokus (np. menu My Account, odcinki) |
+| Spacja | Zaznacz / odznacz odcinek lub język i usłysz nowy stan; na liście Język audio lub Napisy otwiera listę |
+| Escape | W rozwiniętej liście języków zamyka ją poprawnie (wysyła Enter); poza nią zwykły Escape |
+
+Listy Język audio i Napisy: Enter, Alt+Strzałka w dół, F4 lub Spacja otwiera listę, Spacja zaznacza język, Enter lub Escape zamyka listę.
+
+Okno pobranych filmów (Ctrl+Shift+L): Enter lub Alt+O odtwórz, Alt+F pokaż w folderze, Alt+K kopiuj ścieżkę, Escape zamknij. Okno kolejki (Ctrl+Shift+K): Escape zamyka.
 
 ### Okno aktualizacji StreamFab (StreamUpdate.exe)
 
 Osobny moduł `streamupdate.py`: okno jest czytane automatycznie po polsku, przyciski i pole beta mają polskie nazwy, a postęp aktualizacji jest ogłaszany co kilka procent.
 
-Od 0.6.3 w oknie aktualizacji działa własny Tab / Shift+Tab (tabela wersji, Co nowego, Historia zmian, pole beta, Pomiń tę wersję, Uaktualnij teraz, Anuluj, Minimalizuj, Zamknij); Enter i Spacja wykonują akcję bieżącego elementu.
+Okno aktualizacji nie przepuszcza Tab do przycisków, dlatego działa w nim własny Tab / Shift+Tab (tabela wersji, Co nowego, Historia zmian, pole beta, Pomiń tę wersję, Uaktualnij teraz, Anuluj, Minimalizuj, Zamknij); Enter, Enter numeryczny lub Spacja wykonują akcję bieżącego elementu. Gdy okna aktualizacji nie ma, te klawisze działają zwykle.
 
 | Skrót | Działanie |
 |---|---|
@@ -58,9 +69,14 @@ Od 0.6.3 w oknie aktualizacji działa własny Tab / Shift+Tab (tabela wersji, Co
 | Ctrl+Shift+I | Otwórz „Co nowego” w oknie do czytania strzałkami (zaznaczanie i kopiowanie, Escape zamyka); to samo Enter/Spacja na polu „Co nowego” w cyklu Tab |
 | Ctrl+Shift+M | Otwórz historię zmian |
 | Ctrl+Shift+B | Przełącz aktualizacje beta |
-| Ctrl+Shift+A / Ctrl+Shift+H | Ogłaszanie zmian / lista skrótów |
+| Ctrl+Shift+A | Włącz / wyłącz ogłaszanie zmian |
+| Tab / Shift+Tab | Następny / poprzedni element własnego cyklu Tab |
+| Enter, Enter numeryczny lub Spacja | Akcja bieżącego elementu: naciśnij przycisk, przełącz pole beta, otwórz historię zmian, przeczytaj tabelę; na polu „Co nowego” otwiera okno do czytania (jak Ctrl+Shift+I) |
+| Ctrl+Shift+H | Wszystkie skróty okna aktualizacji |
 
-Skróty można zmienić w NVDA: Ustawienia → Zdarzenia wejścia → kategoria „StreamFab dostęp”.
+### Zmiana skrótów
+
+Każdy skrót obu modułów ma polski opis i można go zmienić w NVDA: Ustawienia → Zdarzenia wejścia → kategoria „StreamFab dostęp” (wspólna dla obu modułów). Skróty modułu widać tam tylko wtedy, gdy okno Zdarzeń wejścia otworzysz przy aktywnym StreamFab (skróty StreamFab) albo przy aktywnym oknie aktualizacji (skróty okna aktualizacji). Tab, Shift+Tab, strzałki, Spacja i Escape w StreamFab mają przypisany klawisz tylko wtedy, gdy w StreamFab jest otwarte okno, a otwieranie listy języków widać, gdy fokus jest na liście Język audio lub Napisy.
 
 Pełna dokumentacja: [addon/doc/pl/readme.html](addon/doc/pl/readme.html) (dostępna też w Menedżerze dodatków NVDA).
 
@@ -78,7 +94,7 @@ Rename-Item streamFabDostep.zip streamFabDostep.nvda-addon
 - `addon/manifest.ini` — opis dodatku dla NVDA
 - `addon/appModules/streamfab64.py` — moduł aplikacji dla StreamFab64.exe (UI Automation, wątek roboczy)
 - `addon/appModules/streamupdate.py` — moduł aplikacji dla StreamUpdate.exe (okno aktualizacji)
-- `addon/doc/pl/readme.html` — dokumentacja
+- `addon/doc/pl/readme.html` — dokumentacja (`addon/doc/en/readme.html` ma tę samą treść po polsku)
 
 ## Znane ograniczenia
 

@@ -80,8 +80,19 @@ DATAITEM_TYPE = 50029
 TABLE_TYPE = 50036
 PROGRESS_TYPE = 50012
 HINT = ("Skróty: Ctrl+Shift+U lub O uaktualnij teraz, Ctrl+Shift+P pomiń wersję, Ctrl+Shift+C anuluj, "
-	"Ctrl+Shift+I co nowego w oknie do czytania (Escape zamyka),Ctrl+Shift+M historia zmian, Ctrl+Shift+B aktualizacje beta, "
+	"Ctrl+Shift+I co nowego w oknie do czytania (Escape zamyka), Ctrl+Shift+M historia zmian, Ctrl+Shift+B aktualizacje beta, "
 	"Ctrl+Shift+R przeczytaj okno, Ctrl+Shift+H pomoc. Tab przechodzi do przycisków.")
+# Pełna pomoc (Ctrl+Shift+H): wszystkie skróty modułu okna aktualizacji.
+HELP = ("Okno aktualizacji StreamFab. Ctrl+Shift+R: przeczytaj okno. Ctrl+Shift+U lub Ctrl+Shift+O: uaktualnij teraz. "
+	"Ctrl+Shift+P: pomiń tę wersję. Ctrl+Shift+C: anuluj, a gdy nie ma Anuluj, zamknij. "
+	"Ctrl+Shift+I: Co nowego w oknie do czytania strzałkami, Escape zamyka to okno. Ctrl+Shift+M: historia zmian. "
+	"Ctrl+Shift+B: przełącz aktualizacje beta. Ctrl+Shift+A: włącz lub wyłącz ogłaszanie zmian. "
+	"Tab i Shift+Tab: następny i poprzedni element: tabela wersji, Co nowego, Historia zmian, pole beta, "
+	"Pomiń tę wersję, Uaktualnij teraz, Anuluj, Minimalizuj, Zamknij. "
+	"Enter, Enter numeryczny lub Spacja: akcja bieżącego elementu: naciska przycisk, przełącza pole beta, "
+	"otwiera historię zmian, czyta tabelę, a na polu Co nowego otwiera okno do czytania. "
+	"Ctrl+Shift+H: ta pomoc. Skróty zmienisz w NVDA, Ustawienia, Zdarzenia wejścia, kategoria StreamFab dostęp, "
+	"otwierając to okno przy aktywnym oknie aktualizacji.")
 # Własny cykl Tab: (ostatni człon AutomationId, rodzaj, polska nazwa, rola mówiona).
 TAB_ORDER = (
 	("tableView_update", "table", "Tabela wersji", "tabela"),
@@ -636,9 +647,9 @@ class AppModule(appModuleHandler.AppModule):
 		self.worker.autoAnnounce = not self.worker.autoAnnounce
 		ui.message("Ogłaszanie włączone" if self.worker.autoAnnounce else "Ogłaszanie wyłączone")
 
-	@script(description="Czyta listę skrótów okna aktualizacji", category=CATEGORY, gesture="kb:control+shift+h")
+	@script(description="Czyta wszystkie skróty okna aktualizacji", category=CATEGORY, gesture="kb:control+shift+h")
 	def script_help(self, gesture):
-		ui.message(HINT + " Ctrl+Shift+A: ogłaszanie zmian.")
+		ui.message(HELP)
 
 	# --- własny Tab (okno aktualizacji nie dopuszcza Tab do przycisków) ---
 	def _tab(self, gesture, step):
@@ -647,15 +658,16 @@ class AppModule(appModuleHandler.AppModule):
 			return
 		self._put(lambda: self.worker.taskTab(step))
 
-	@script(description="Następny element okna aktualizacji", category=CATEGORY, gesture="kb:tab")
+	@script(description="Następny element okna aktualizacji (własny cykl Tab)", category=CATEGORY, gesture="kb:tab")
 	def script_tabNext(self, gesture):
 		self._tab(gesture, 1)
 
-	@script(description="Poprzedni element okna aktualizacji", category=CATEGORY, gesture="kb:shift+tab")
+	@script(description="Poprzedni element okna aktualizacji (własny cykl Shift+Tab)", category=CATEGORY, gesture="kb:shift+tab")
 	def script_tabPrev(self, gesture):
 		self._tab(gesture, -1)
 
-	@script(description="Wykonuje akcję bieżącego elementu okna aktualizacji", category=CATEGORY,
+	@script(description="Wykonuje akcję bieżącego elementu okna aktualizacji: naciska przycisk, przełącza pole beta, "
+		"otwiera historię zmian, czyta tabelę lub otwiera Co nowego w oknie do czytania", category=CATEGORY,
 		gestures=["kb:enter", "kb:space", "kb:numpadEnter"])
 	def script_activate(self, gesture):
 		if not self.worker.present or self.worker.cur is None:
