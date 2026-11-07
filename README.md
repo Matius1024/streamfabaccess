@@ -43,6 +43,21 @@ Wymagany NVDA 2024.1 lub nowszy (testowano z NVDA 2026.3 i StreamFab 7.0.5.6 na 
 | Ctrl+Shift+H | Lista skrótów |
 | Spacja (w oknie pobierania serialu) | Zaznacz / odznacz odcinek lub język i usłysz nowy stan |
 
+### Okno aktualizacji StreamFab (StreamUpdate.exe)
+
+Osobny moduł `streamupdate.py`: okno jest czytane automatycznie po polsku, przyciski i pole beta mają polskie nazwy, a postęp aktualizacji jest ogłaszany co kilka procent.
+
+| Skrót | Działanie |
+|---|---|
+| Ctrl+Shift+R | Przeczytaj okno ponownie |
+| Ctrl+Shift+U lub Ctrl+Shift+O | Uaktualnij teraz |
+| Ctrl+Shift+P | Pomiń tę wersję |
+| Ctrl+Shift+C | Anuluj (lub Zamknij) |
+| Ctrl+Shift+N | Przeczytaj „Co nowego” |
+| Ctrl+Shift+M | Otwórz historię zmian |
+| Ctrl+Shift+B | Przełącz aktualizacje beta |
+| Ctrl+Shift+A / Ctrl+Shift+H | Ogłaszanie zmian / lista skrótów |
+
 Skróty można zmienić w NVDA: Ustawienia → Zdarzenia wejścia → kategoria „StreamFab dostęp”.
 
 Pełna dokumentacja: [addon/doc/pl/readme.html](addon/doc/pl/readme.html) (dostępna też w Menedżerze dodatków NVDA).
@@ -60,6 +75,7 @@ Rename-Item streamFabDostep.zip streamFabDostep.nvda-addon
 
 - `addon/manifest.ini` — opis dodatku dla NVDA
 - `addon/appModules/streamfab64.py` — moduł aplikacji dla StreamFab64.exe (UI Automation, wątek roboczy)
+- `addon/appModules/streamupdate.py` — moduł aplikacji dla StreamUpdate.exe (okno aktualizacji)
 - `addon/doc/pl/readme.html` — dokumentacja
 
 ## Znane ograniczenia

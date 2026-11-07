@@ -20,6 +20,7 @@ kbd { font-family: inherit; font-weight: bold; }
 <li><a href="#instalacja">Instalacja i usuwanie</a></li>
 <li><a href="#skroty">Skróty klawiszowe</a></li>
 <li><a href="#dzialanie">Jak działa dodatek</a></li>
+<li><a href="#aktualizacja">Okno aktualizacji StreamFab</a></li>
 <li><a href="#okno-pobierania">Okno pobierania serialu lub filmu</a></li>
 <li><a href="#porady">Porady dotyczące StreamFab</a></li>
 <li><a href="#ograniczenia">Znane ograniczenia</a></li>
@@ -113,6 +114,21 @@ kbd { font-family: inherit; font-weight: bold; }
 <li>Ustawienia → Ogólne → „Katalog pobierania” i „Katalog tymczasowy” — ustaw na dysk z dużą ilością wolnego miejsca; inaczej pojawia się ostrzeżenie o braku miejsca.</li>
 </ul>
 
+<h2 id="aktualizacja">Okno aktualizacji StreamFab (StreamUpdate.exe)</h2>
+<p>Okno aktualizacji działa w osobnym programie (StreamUpdate.exe), więc ma własny moduł dodatku. Po pojawieniu się okna NVDA sam czyta tytuł, komunikaty po polsku, wiersze tabeli (np. „StreamFab_us (x64): obecna wersja 7.0.5.6, nowa wersja 7.0.5.7, rozmiar 760.5 MB”) i podpowiedź skrótów. Przyciski mają polskie nazwy (Minimalizuj, Zamknij, Pomiń tę wersję, Uaktualnij teraz, Anuluj), a pole wyboru nazywa się „Otrzymuj aktualizacje w wersji beta”. Po rozpoczęciu aktualizacji dodatek ogłasza zmiany tekstów oraz postęp co kilka procent. Tab i Shift+Tab działają standardowo.</p>
+<table>
+<tr><th>Skrót</th><th>Działanie</th></tr>
+<tr><td><kbd>Ctrl+Shift+R</kbd></td><td>Czyta okno ponownie.</td></tr>
+<tr><td><kbd>Ctrl+Shift+U</kbd> lub <kbd>Ctrl+Shift+O</kbd></td><td>Naciska Uaktualnij teraz.</td></tr>
+<tr><td><kbd>Ctrl+Shift+P</kbd></td><td>Naciska Pomiń tę wersję.</td></tr>
+<tr><td><kbd>Ctrl+Shift+C</kbd></td><td>Naciska Anuluj (a gdy go nie ma — Zamknij).</td></tr>
+<tr><td><kbd>Ctrl+Shift+N</kbd></td><td>Czyta tekst „Co nowego”.</td></tr>
+<tr><td><kbd>Ctrl+Shift+M</kbd></td><td>Otwiera historię zmian (kliknięcie linku „Zobacz historię zmian...”).</td></tr>
+<tr><td><kbd>Ctrl+Shift+B</kbd></td><td>Przełącza otrzymywanie aktualizacji beta i podaje nowy stan.</td></tr>
+<tr><td><kbd>Ctrl+Shift+A</kbd></td><td>Włącza lub wyłącza ogłaszanie zmian.</td></tr>
+<tr><td><kbd>Ctrl+Shift+H</kbd></td><td>Czyta listę skrótów.</td></tr>
+</table>
+
 <h2 id="okno-pobierania">Okno pobierania serialu lub filmu</h2>
 <ul>
 <li>Lista odcinków: strzałki w górę i w dół przechodzą po odcinkach, <kbd>Spacja</kbd> zaznacza lub odznacza odcinek, strzałka w prawo rozwija sezon (np. „Ekstra”). Dodatek czyta numer i tytuł odcinka z czasem trwania, po Spacji mówi „zaznaczone” albo „niezaznaczone” i licznik, np. „Wybrano 2 z 19”.</li>
@@ -131,6 +147,10 @@ kbd { font-family: inherit; font-weight: bold; }
 </ul>
 
 <h2 id="zmiany">Historia zmian</h2>
+<h3>0.6.1</h3>
+<ul>
+<li>Nowy moduł dla okna aktualizacji StreamFab (StreamUpdate.exe): automatyczne czytanie okna po polsku, polskie nazwy przycisków, pola beta i tabeli, ogłaszanie postępu aktualizacji oraz skróty <kbd>Ctrl+Shift+R</kbd>, <kbd>U</kbd>/<kbd>O</kbd>, <kbd>P</kbd>, <kbd>C</kbd>, <kbd>N</kbd>, <kbd>M</kbd>, <kbd>B</kbd>, <kbd>A</kbd>, <kbd>H</kbd>.</li>
+</ul>
 <h3>0.6.0</h3>
 <ul>
 <li>Ogłoszenia o pobieraniu oraz skróty <kbd>Ctrl+Shift+K</kbd> i <kbd>Ctrl+Shift+S</kbd> działają także wtedy, gdy StreamFab na chwilę przestaje odpowiadać (zdarza się to przez kilkanaście sekund przy starcie każdego pobierania). Wcześniej odpowiedzi przychodziły wtedy z dużym opóźnieniem.</li>
