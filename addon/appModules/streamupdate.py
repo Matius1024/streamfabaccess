@@ -79,7 +79,7 @@ DATAITEM_TYPE = 50029
 TABLE_TYPE = 50036
 PROGRESS_TYPE = 50012
 HINT = ("Skróty: Ctrl+Shift+U lub O uaktualnij teraz, Ctrl+Shift+P pomiń wersję, Ctrl+Shift+C anuluj, "
-	"Ctrl+Shift+N co nowego, Ctrl+Shift+M historia zmian, Ctrl+Shift+B aktualizacje beta, "
+	"Ctrl+Shift+I co nowego, Ctrl+Shift+M historia zmian, Ctrl+Shift+B aktualizacje beta, "
 	"Ctrl+Shift+R przeczytaj okno, Ctrl+Shift+H pomoc.")
 _PCT = re.compile(r"(\d+(?:[.,]\d+)?)\s*%")
 
@@ -491,7 +491,7 @@ class AppModule(appModuleHandler.AppModule):
 	def script_cancel(self, gesture):
 		self._put(lambda: self.worker.taskButton(("pushButton_cancel", "pushButton_close"), "Anuluj"))
 
-	@script(description="Czyta tekst Co nowego z okna aktualizacji", category=CATEGORY, gesture="kb:control+shift+n")
+	@script(description="Czyta tekst Co nowego z okna aktualizacji", category=CATEGORY, gesture="kb:control+shift+i")
 	def script_whatsNew(self, gesture):
 		self._put(self.worker.taskWhatsNew)
 

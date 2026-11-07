@@ -53,7 +53,7 @@ Osobny moduł `streamupdate.py`: okno jest czytane automatycznie po polsku, przy
 | Ctrl+Shift+U lub Ctrl+Shift+O | Uaktualnij teraz |
 | Ctrl+Shift+P | Pomiń tę wersję |
 | Ctrl+Shift+C | Anuluj (lub Zamknij) |
-| Ctrl+Shift+N | Przeczytaj „Co nowego” |
+| Ctrl+Shift+I | Przeczytaj „Co nowego” |
 | Ctrl+Shift+M | Otwórz historię zmian |
 | Ctrl+Shift+B | Przełącz aktualizacje beta |
 | Ctrl+Shift+A / Ctrl+Shift+H | Ogłaszanie zmian / lista skrótów |
