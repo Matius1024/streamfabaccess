@@ -122,7 +122,7 @@ kbd { font-family: inherit; font-weight: bold; }
 <tr><td><kbd>Ctrl+Shift+U</kbd> lub <kbd>Ctrl+Shift+O</kbd></td><td>Naciska Uaktualnij teraz.</td></tr>
 <tr><td><kbd>Ctrl+Shift+P</kbd></td><td>Naciska Pomiń tę wersję.</td></tr>
 <tr><td><kbd>Ctrl+Shift+C</kbd></td><td>Naciska Anuluj (a gdy go nie ma — Zamknij).</td></tr>
-<tr><td><kbd>Ctrl+Shift+I</kbd></td><td>Czyta tekst „Co nowego”.</td></tr>
+<tr><td><kbd>Ctrl+Shift+I</kbd></td><td>Otwiera tekst „Co nowego” w oknie do czytania strzałkami (każda linia osobno, tekst można zaznaczyć i skopiować, np. do tłumaczenia); <kbd>Escape</kbd> zamyka okno. To samo robi <kbd>Enter</kbd> lub <kbd>Spacja</kbd> na polu „Co nowego” we własnym cyklu Tab.</td></tr>
 <tr><td><kbd>Ctrl+Shift+M</kbd></td><td>Otwiera historię zmian (kliknięcie linku „Zobacz historię zmian...”).</td></tr>
 <tr><td><kbd>Ctrl+Shift+B</kbd></td><td>Przełącza otrzymywanie aktualizacji beta i podaje nowy stan.</td></tr>
 <tr><td><kbd>Ctrl+Shift+A</kbd></td><td>Włącza lub wyłącza ogłaszanie zmian.</td></tr>
@@ -147,6 +147,10 @@ kbd { font-family: inherit; font-weight: bold; }
 </ul>
 
 <h2 id="zmiany">Historia zmian</h2>
+<h3>0.6.4</h3>
+<ul>
+<li>Update window: <kbd>Ctrl+Shift+I</kbd> (and <kbd>Enter</kbd> / <kbd>Space</kbd> on the What is new field in the own Tab cycle) opens the What is new text in a browseable window read with the arrow keys, titled with the new version. Each line is a separate paragraph; the text can be selected and copied (e.g. for translation). <kbd>Escape</kbd> closes the window.</li>
+</ul>
 <h3>0.6.3</h3>
 <ul>
 <li>Update window: own <kbd>Tab</kbd> / <kbd>Shift+Tab</kbd> cycle (versions table, What is new, change history, beta checkbox, Skip this version, Update now, Cancel, Minimize, Close), because focus was stuck in the table that swallowed Tab. <kbd>Enter</kbd> and <kbd>Space</kbd> activate the current item.</li>

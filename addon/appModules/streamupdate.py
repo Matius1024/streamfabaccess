@@ -9,6 +9,7 @@ import queue
 import re
 import threading
 import time
+from html import escape
 
 import api
 import appModuleHandler
@@ -79,12 +80,12 @@ DATAITEM_TYPE = 50029
 TABLE_TYPE = 50036
 PROGRESS_TYPE = 50012
 HINT = ("Skróty: Ctrl+Shift+U lub O uaktualnij teraz, Ctrl+Shift+P pomiń wersję, Ctrl+Shift+C anuluj, "
-	"Ctrl+Shift+I co nowego, Ctrl+Shift+M historia zmian, Ctrl+Shift+B aktualizacje beta, "
+	"Ctrl+Shift+I co nowego w oknie do czytania (Escape zamyka),Ctrl+Shift+M historia zmian, Ctrl+Shift+B aktualizacje beta, "
 	"Ctrl+Shift+R przeczytaj okno, Ctrl+Shift+H pomoc. Tab przechodzi do przycisków.")
 # Własny cykl Tab: (ostatni człon AutomationId, rodzaj, polska nazwa, rola mówiona).
 TAB_ORDER = (
 	("tableView_update", "table", "Tabela wersji", "tabela"),
-	("textBrowser", "text", "Co nowego", "pole tekstowe, Ctrl+Shift+I czyta"),
+	("textBrowser", "text", "Co nowego", "Enter lub Ctrl+Shift+I otwiera w oknie do czytania"),
 	("label_more", "link", "Historia zmian", "link"),
 	("checkBox_allowBeta", "check", "Otrzymuj aktualizacje w wersji beta", "pole wyboru"),
 	("pushButton_skipVersion", "button", "Pomiń tę wersję", "przycisk"),
@@ -98,6 +99,15 @@ _PCT = re.compile(r"(\d+(?:[.,]\d+)?)\s*%")
 
 def say(text):
 	queueHandler.queueFunction(queueHandler.eventQueue, ui.message, text)
+
+
+def showText(lines, title):
+	"""Okno do czytania strzałkami (wywoływane w głównym wątku NVDA); każda linia osobnym akapitem."""
+	html = "".join("<p>%s</p>" % escape(ln) for ln in lines)
+	try:
+		ui.browseableMessage(html, title, isHtml=True, closeButton=True, copyButton=True)
+	except TypeError:  # NVDA starsze niż 2025.1 nie mają przycisków
+		ui.browseableMessage(html, title, True)
 
 
 def tr(text):
@@ -405,8 +415,25 @@ class Worker(threading.Thread):
 				text = pat.CurrentValue or ""
 			except (comtypes.COMError, AttributeError, ValueError):
 				pass
-		text = re.sub(r"\s*\n\s*", ". ", text.strip())
-		say("Co nowego: " + text if text else "Pole Co nowego jest puste.")
+		lines = [ln.strip() for ln in re.split(r"[\r\n  \x0b]+", text) if ln.strip()]
+		if not lines:
+			say("Pole Co nowego jest puste.")
+			return
+		ver = ""
+		try:
+			_, rows = self.table(items)
+			for row in rows:
+				for head, val in row:
+					if head == "New Version" and val:
+						ver = val
+						break
+				if ver:
+					break
+		except Exception:
+			pass
+		title = "Co nowego w StreamFab" + (" " + ver if ver else "")
+		say("Otwieram Co nowego. Escape zamyka okno.")
+		queueHandler.queueFunction(queueHandler.eventQueue, showText, lines, title)
 
 	def taskHistory(self):
 		items = self.snapshot()
@@ -592,7 +619,7 @@ class AppModule(appModuleHandler.AppModule):
 	def script_cancel(self, gesture):
 		self._put(lambda: self.worker.taskButton(("pushButton_cancel", "pushButton_close"), "Anuluj"))
 
-	@script(description="Czyta tekst Co nowego z okna aktualizacji", category=CATEGORY, gesture="kb:control+shift+i")
+	@script(description="Otwiera tekst Co nowego z okna aktualizacji w oknie do czytania strzałkami (Escape zamyka)", category=CATEGORY, gesture="kb:control+shift+i")
 	def script_whatsNew(self, gesture):
 		self._put(self.worker.taskWhatsNew)
 
