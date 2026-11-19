@@ -62,6 +62,9 @@ TRANSLATE = {
 	"SIGN UP": "Zarejestruj",
 	"Sign in with Google": "Zaloguj przez Google",
 	"or": "lub",
+	"Cancel": "Anuluj",
+	"Insufficient disk space in temp directory. Please free up space or choose another directory.":
+		"Za mało miejsca na dysku w katalogu tymczasowym. Zwolnij miejsce albo wybierz inny katalog.",
 }
 # Napisy okna logowania, które działają jak linki (to zwykłe etykiety, więc dodatek klika je myszą).
 LINK_LABELS = {
@@ -181,7 +184,11 @@ DIALOG_TITLES = {
 	"QRegister": "Okno logowania StreamFab",
 	"WebSitePopupDlg": "Okno reklamy StreamFab, Ctrl+Shift+C zamyka",
 	"LicenseInfoOptionsDlg": "Okno Licencja",
+	"DiskSpaceWarningDlg": "Ostrzeżenie: za mało miejsca na dysku w katalogu tymczasowym. "
+		"Ctrl+Shift+O to OK, Ctrl+Shift+C anuluje",
 }
+# Okna, których treść czytamy dopiero po mowie fokusu (inaczej mowa fokusu ją zagłusza).
+LATE_READ = "DiskSpaceWarningDlg"
 # --- okno Licencja (LicenseInfoOptionsDlg) ---
 LICENSE_CLASS = "LicenseInfoOptionsDlg"
 # Własny cykl Tab: (ostatni człon AutomationId, rodzaj, polska nazwa, rola mówiona).
@@ -1000,12 +1007,17 @@ class Worker(threading.Thread):
 		self.watchMessage(dlg, announce=False)
 		if not self.autoAnnounce:
 			return
-		self.taskReadDialog(dlg, auto=True)
+		late = LATE_READ in (key[0] or "") + cls
+		if not late:
+			self.taskReadDialog(dlg, auto=True)
 		if moved:
 			say("Logowanie czeka na zamknięcie tego okna" if self.hasBackground("QRegister") else "Przeniesiono do tego okna")
 		if cls == LICENSE_CLASS:
 			return  # fokus stoi w pustej komórce tabeli — nie czytamy jej
 		self.taskHiddenFocus(dlg, delay=0)
+		if late:
+			time.sleep(0.3)
+			self.taskReadDialog(dlg, auto=True)
 
 	def watchMessage(self, dlg, announce=True):
 		"""Ogłasza zmiany komunikatu stanu w oknie (np. „Weryfikowanie informacji o koncie”, błąd hasła)."""
@@ -1013,7 +1025,8 @@ class Worker(threading.Thread):
 			return
 		try:
 			el = self.find(dlg, lambda e: e.CurrentControlType == TEXT_TYPE and self.last(e) in MESSAGE_LABELS)
-			text = (el.CurrentName or "").strip().rstrip(".") if el else ""
+			text = (el.CurrentName or "").strip() if el else ""
+			text = TRANSLATE.get(text, text).rstrip(".")
 		except comtypes.COMError:
 			return
 		prev, self._message = self._message, text
@@ -1364,6 +1377,7 @@ class Worker(threading.Thread):
 			try:
 				if el.CurrentControlType == TEXT_TYPE:
 					t = (el.CurrentName or "").strip()
+					t = TRANSLATE.get(t, t)
 				else:
 					v = el.GetCurrentPattern(UIA.UIA_ValuePatternId).QueryInterface(UIA.IUIAutomationValuePattern).CurrentValue
 					t = "pole %s: %s" % (el.CurrentName or NAMES.get(self.last(el), ""), v or "puste")
@@ -1373,7 +1387,7 @@ class Worker(threading.Thread):
 				texts.append(t)
 		title = (dlg.CurrentName or "").strip()
 		texts = [t for t in texts if t != title]
-		title = DIALOG_TITLES.get(dlg.CurrentClassName) or DIALOG_TITLES.get(title) or ("Okno " + (title or "bez nazwy"))
+		title = DIALOG_TITLES.get(dlg.CurrentClassName) or DIALOG_TITLES.get(self.last(dlg)) or DIALOG_TITLES.get(title) or ("Okno " + (title or "bez nazwy"))
 		if auto and len(texts) > MAX_AUTO_TEXTS:
 			say("%s. Ctrl+Shift+R czyta jego treść." % title)
 			return

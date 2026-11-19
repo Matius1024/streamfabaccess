@@ -2,11 +2,11 @@
 
 Dodatek do czytnika ekranu [NVDA](https://www.nvaccess.org/), który poprawia dostępność programu **StreamFab** (StreamFab64.exe) dla osób niewidomych.
 
-Aktualna wersja: **0.6.5**.
+Aktualna wersja: **0.6.6**.
 
 ## Pobieranie i instalacja
 
-1. Pobierz najnowszą wersję (0.6.5): [streamfabaccess.nvda-addon](https://github.com/Matius1024/streamfabaccess/releases/latest/download/streamfabaccess.nvda-addon) (link zawsze prowadzi do najnowszego wydania; wcześniejsze wersje są w zakładce [Releases](../../releases)).
+1. Pobierz najnowszą wersję (0.6.6): [streamfabaccess.nvda-addon](https://github.com/Matius1024/streamfabaccess/releases/latest/download/streamfabaccess.nvda-addon) (link zawsze prowadzi do najnowszego wydania; wcześniejsze wersje są w zakładce [Releases](../../releases)).
 2. Otwórz go (Enter w Eksploratorze), potwierdź instalację i uruchom ponownie NVDA.
 
 Wymagany NVDA 2024.1 lub nowszy (testowano z NVDA 2026.3 i StreamFab 7.0.5.7 na Windows 11).
@@ -106,6 +106,11 @@ Okno aktualizacji nie przepuszcza Tab do przycisków, dlatego działa w nim wła
 Każdy skrót obu modułów ma polski opis i można go zmienić w NVDA: Ustawienia → Zdarzenia wejścia → kategoria „StreamFab dostęp” (wspólna dla obu modułów). Skróty modułu widać tam tylko wtedy, gdy okno Zdarzeń wejścia otworzysz przy aktywnym StreamFab (skróty StreamFab) albo przy aktywnym oknie aktualizacji (skróty okna aktualizacji). Tab, Shift+Tab, strzałki, Spacja i Escape (a w oknie Licencja także Enter) w StreamFab mają przypisany klawisz tylko wtedy, gdy w StreamFab jest otwarte okno, a otwieranie listy języków widać, gdy fokus jest na liście Język audio lub Napisy.
 
 Pełna dokumentacja: [addon/doc/pl/readme.html](addon/doc/pl/readme.html) (dostępna też w Menedżerze dodatków NVDA).
+
+## Co nowego w 0.6.6
+
+- Okno ostrzeżenia o braku miejsca na dysku w katalogu tymczasowym (DiskSpaceWarningDlg): treść ostrzeżenia jest czytana po polsku („Za mało miejsca na dysku w katalogu tymczasowym. Zwolnij miejsce albo wybierz inny katalog.”) i nie ginie pod mową fokusu, bo dodatek czyta ją po przeniesieniu fokusu. Ctrl+Shift+O naciska OK, Ctrl+Shift+C Anuluj.
+- Przycisk „Cancel” jest czytany jako „Anuluj”, a komunikaty stanu w oknach są tłumaczone tym samym słownikiem co napisy okna logowania.
 
 ## Co nowego w 0.6.5
 
