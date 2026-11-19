@@ -194,11 +194,12 @@ LICENSE_CLASS = "LicenseInfoOptionsDlg"
 # Własny cykl Tab: (ostatni człon AutomationId, rodzaj, polska nazwa, rola mówiona).
 LICENSE_TAB = (
 	("tableWidgetLicense", "table", "Tabela licencji", ""),
-	("labelprivilege", "offer", "Oferta Fab365", ""),
-	("pushButton_upgrade", "buy", "Subskrybuj teraz", "przycisk, otwiera stronę zakupu"),
+	("labelprivilege", "offer", "Oferta", ""),
+	("pushButton_upgrade", "buy", "Przycisk zakupu", "przycisk, otwiera stronę zakupu"),  # etykieta = nazwa przycisku
 	("checkBoxShowAgain", "check", "Nie pokazuj ponownie", "pole wyboru"),
 	("pushButtonStart", "button", "Rozpocznij StreamFab", "przycisk, Ctrl+Shift+O"),
-	("pushButtonClose", "button", "Zamknij", "przycisk, Ctrl+Shift+C"),
+	("pushButtonLeftClose", "button", "Zamknij", "przycisk, Ctrl+Shift+C"),
+	("pushButtonClose", "button", "Zamknij", "przycisk, Ctrl+Shift+C"),  # krzyżyk — tylko gdy brak pushButtonLeftClose
 )
 # Przyciski, które otwierają stronę zakupu — naciskamy je dopiero po potwierdzeniu.
 BUY_BUTTONS = ("pushButton_upgrade",)
@@ -207,17 +208,24 @@ BUY_CONFIRM_SECONDS = 4.0
 LICENSE_NEXT = ("Aby przejść dalej do StreamFab, naciśnij Ctrl+Shift+O, Rozpocznij StreamFab, to zalecane, "
 	"albo Ctrl+Shift+C, Zamknij. Żeby okno nie pojawiało się przy każdym starcie, najpierw naciśnij Tab 4 razy, "
 	"do pola Nie pokazuj ponownie, i naciśnij Spację. ")
-LICENSE_HINT = (LICENSE_NEXT + "Tab i Shift+Tab przechodzą po elementach okna, Enter lub Spacja wykonuje akcję; "
-	"na tabeli licencji Enter otwiera pełną listę do czytania strzałkami. "
-	"Ctrl+Shift+O: Rozpocznij StreamFab. Ctrl+Shift+C: Zamknij. Ctrl+Shift+R: przeczytaj okno. Ctrl+Shift+H: pomoc.")
-# Tekst oferty Fab365 (StreamFab pokazuje go po angielsku), tłumaczony wiersz po wierszu.
+# Okno otwarte z menu Moje konto albo po zalogowaniu nie ma Rozpocznij StreamFab ani Nie pokazuj ponownie.
+LICENSE_NEXT_CLOSE = "Aby wrócić do StreamFab, naciśnij Ctrl+Shift+C, Zamknij. "
+LICENSE_WAITING = "Logowanie dokończy się po zamknięciu tego okna. "
+LICENSE_KEYS = ("Tab i Shift+Tab przechodzą po elementach okna, Enter lub Spacja wykonuje akcję; "
+	"na tabeli licencji Enter otwiera pełną listę do czytania strzałkami. ")
+LICENSE_CELL = "Tabela licencji, tekst komórek jest tylko obrazkiem. Enter otwiera pełną listę do czytania strzałkami."
+# Tekst oferty (Fab365 albo All-In-One) (StreamFab pokazuje go po angielsku), tłumaczony wiersz po wierszu.
 OFFER_TRANSLATE = {
 	"Subscribe to Fab365 for all StreamFab software and services!":
 		"Subskrybuj Fab365, aby mieć wszystkie programy i usługi StreamFab.",
 	"Unlock future products & Dual-OS.": "Odblokowanie przyszłych produktów i obu systemów, Windows i Mac.",
 	"Enjoy multi-device support & Extended Download Services.":
 		"Obsługa wielu urządzeń i rozszerzone usługi pobierania.",
+	"Get StreamFab All-In-One for all 70 products.": "Kup StreamFab All-In-One, wszystkie 70 programów.",
+	"Gift 1: License for 5 computers": "Prezent 1: licencja na 5 komputerów",
+	"Gift 2: $30 Amazon Gift Card": "Prezent 2: karta podarunkowa Amazon za 30 dolarów",
 }
+_PRICE = re.compile(r"\$\s*\d+[.,]\d+")
 # Plik rejestracji StreamFab: RegInfo="1|310:8260744964|308:...|VP:-1|..." (numer opcji : koniec licencji, czas uniksowy).
 REG_RECORD = os.path.expandvars(r"%APPDATA%\StreamFab\StreamFab\regRecord\localuse.rec")
 # Ikona „ptaszka” przed stanem licencji OCR czyta jako osobny znak.
@@ -292,7 +300,7 @@ def readRegLicenses():
 
 
 def translateOffer(text):
-	"""Tekst oferty Fab365 po polsku (nieznane wiersze zostają bez zmian)."""
+	"""Tekst oferty po polsku (nieznane wiersze zostają bez zmian)."""
 	out = []
 	for line in (text or "").splitlines():
 		line = line.strip().lstrip("-•").strip()
@@ -302,8 +310,31 @@ def translateOffer(text):
 
 
 def priceText(text):
-	"""„$129.99” → „129,99 USD”."""
-	return re.sub(r"\$\s*(\d+)[.,](\d+)", r"\1,\2 USD", (text or "").strip())
+	"""„$129.99” → „129,99 dolarów”."""
+	return re.sub(r"\$\s*(\d+)[.,](\d+)", r"\1,\2 dolarów", (text or "").strip())
+
+
+def offerSpeech(privilege, now, origin):
+	"""Oferta z okna Licencja: przetłumaczony tekst i cena („Cena: 299,99 dolarów, wcześniej 429,99 dolarów”)."""
+	lines = [ln for ln in (privilege or "").splitlines() if not _PRICE.fullmatch(ln.strip())]
+	text = translateOffer("\n".join(lines))
+	prices = []
+	for p in [ln.strip() for ln in (privilege or "").splitlines()] + [(now or "").strip()]:
+		if _PRICE.fullmatch(p) and p not in prices:
+			prices.append(p)
+	origin = (origin or "").strip()
+	if _PRICE.fullmatch(origin):  # druga cena to stara cena, nie okres (np. „(1 rok)”)
+		if origin not in prices:
+			prices.append(origin)
+		origin = ""
+	price = ""
+	if prices:
+		price = "Cena: " + priceText(prices[0]) + "".join(", wcześniej " + priceText(p) for p in prices[1:2])
+		price += (" " + origin) if origin else ""
+	text = (text + " " + price).strip()
+	if not text:
+		return ""
+	return ("Oferta Fab365: " if "Fab365" in (privilege or "") else "Oferta: ") + text
 
 
 class _MONITORINFO(ctypes.Structure):
@@ -659,8 +690,11 @@ class Worker(threading.Thread):
 						task()
 					else:
 						self.poll()
-				except Exception:
-					log.warning("StreamFab dostęp: błąd UIA", exc_info=True)
+				except Exception as e:
+					if type(e).__name__ == "CallCancelled":  # StreamFab chwilowo nie odpowiada (watchdog NVDA)
+						log.info("StreamFab dostęp: wywołanie UIA przerwane (%s)", self.busyName)
+					else:
+						log.warning("StreamFab dostęp: błąd UIA", exc_info=True)
 					self._labels.clear()
 				finally:
 					self.busySince = None
@@ -988,7 +1022,18 @@ class Worker(threading.Thread):
 		if key == self._dialogKey:
 			self.watchMessage(dlg)
 			return
+		log.info("StreamFab dostęp: okno %r", key)
 		self._dialogKey = key
+		try:
+			self._announceDialog(dlg, key)
+		except Exception as e:
+			# CallCancelled: StreamFab chwilowo nie odpowiadał — przy następnym sprawdzeniu ogłosimy okno ponownie.
+			# Innych błędów nie ponawiamy, żeby trwały błąd nie powtarzał ogłoszenia co sekundę.
+			if type(e).__name__ == "CallCancelled":
+				self._dialogKey = None
+			raise
+
+	def _announceDialog(self, dlg, key):
 		self._cycle = None
 		self._lastCount = None
 		self._message = None
@@ -1301,8 +1346,9 @@ class Worker(threading.Thread):
 			say("Brak otwartego okna dialogowego")
 			return
 		if self.className(dlg) == LICENSE_CLASS:
-			# okno Licencja: OK = Rozpocznij StreamFab, Anuluj = Zamknij (bez szukania po nazwach)
-			groups = (("pushButtonStart",),) if label == "OK" else (("pushButtonClose",),)
+			# okno Licencja: OK = Rozpocznij StreamFab (gdy go brak — Zamknij), Anuluj = Zamknij (bez szukania po nazwach)
+			close = (("pushButtonLeftClose",), ("pushButtonClose",))
+			groups = ((("pushButtonStart",),) + close) if label == "OK" else close
 			names = ()
 		buttons = self.dialogButtons(dlg)
 		# grupy przeszukujemy po kolei: najpierw właściwe przyciski, potem zastępcze (np. Zamknij zamiast Anuluj)
@@ -1338,7 +1384,7 @@ class Worker(threading.Thread):
 			self._buyArmed = 0.0
 			return True
 		self._buyArmed = now
-		say("Uwaga: Subskrybuj teraz otwiera stronę zakupu w przeglądarce. "
+		say("Uwaga: ten przycisk otwiera stronę zakupu w przeglądarce. "
 			"Naciśnij %s ponownie w ciągu %d sekund, żeby kontynuować." % (key, int(BUY_CONFIRM_SECONDS)))
 		return False
 
@@ -1430,11 +1476,17 @@ class Worker(threading.Thread):
 			return "stan nieznany"
 
 	def offerText(self, els):
-		text = translateOffer(self.elName(els, "labelprivilege"))
-		price = " ".join(p for p in (priceText(self.elName(els, "labelNowPrice")), self.elName(els, "labelOriginPrice")) if p)
-		if price:
-			text = (text + " Cena: " + price).strip()
-		return ("Oferta Fab365: " + text) if text else ""
+		return offerSpeech(self.elName(els, "labelprivilege"), self.elName(els, "labelNowPrice"),
+			self.elName(els, "labelOriginPrice"))
+
+	def licenseHint(self, els):
+		"""Jak przejść dalej — zależnie od wariantu okna (pierwszy start albo okno z Moje konto / po zalogowaniu)."""
+		start = "pushButtonStart" in els
+		text = LICENSE_NEXT if start else LICENSE_NEXT_CLOSE
+		if self.hasBackground("QRegister"):
+			text += LICENSE_WAITING
+		return (text + LICENSE_KEYS + ("Ctrl+Shift+O: Rozpocznij StreamFab. Ctrl+Shift+C: Zamknij. " if start else
+			"Ctrl+Shift+O i Ctrl+Shift+C: Zamknij. ") + "Ctrl+Shift+R: przeczytaj okno. Ctrl+Shift+H: pomoc.")
 
 	def licenseStates(self):
 		"""„Dożywotni: 68, Darmowe: 1” z odczytanej tabeli."""
@@ -1469,7 +1521,7 @@ class Worker(threading.Thread):
 			chk = els.get("checkBoxShowAgain")
 			if chk:
 				parts.append("Nie pokazuj ponownie: " + self.toggleText(chk))
-		parts.append(LICENSE_HINT)
+		parts.append(self.licenseHint(els))
 		return ". ".join(p.rstrip(". ") for p in parts if p) + "."
 
 	def licenseTabItems(self, dlg):
@@ -1477,13 +1529,15 @@ class Worker(threading.Thread):
 		out = []
 		for key, kind, label, role in LICENSE_TAB:
 			el = els.get(key)
-			if not el:
+			if not el or (key == "pushButtonClose" and "pushButtonLeftClose" in els):
 				continue
 			try:
 				if not el.CurrentIsEnabled:
 					continue
 			except comtypes.COMError:
 				continue
+			if kind == "buy":
+				label = self.elName(els, key) or label  # „Kup teraz” albo „Subskrybuj teraz”
 			out.append((key, kind, label, role, el))
 		return out, els
 
@@ -1536,7 +1590,7 @@ class Worker(threading.Thread):
 		elif kind == "buy":
 			if self.confirmBuy("Enter lub Spację"):
 				self.press(el)
-				say("Subskrybuj teraz, otwieram stronę zakupu")
+				say(label + ", otwieram stronę zakupu")
 		elif kind == "check":
 			try:
 				pat = el.GetCurrentPattern(UIA.UIA_TogglePatternId).QueryInterface(UIA.IUIAutomationTogglePattern)
@@ -1789,13 +1843,32 @@ class MultiSelCombo(NVDAObjects.UIA.UIA):
 	}
 
 
+class LicenseCell(NVDAObjects.UIA.UIA):
+	"""Komórka tabeli licencji (tableWidgetLicense): bez tekstu, więc Enter otwiera odczytaną listę."""
+
+	@script(description="W tabeli okna Licencja: otwiera pełną listę licencji do czytania strzałkami", category=CATEGORY)
+	def script_licenseTable(self, gesture):
+		self.appModule.worker.tasks.put(self.appModule.worker.taskLicenseTable)
+
+	__gestures = {
+		"kb:enter": "licenseTable",
+		"kb:numpadEnter": "licenseTable",
+	}
+
+
 class AppModule(appModuleHandler.AppModule):
 
 	def chooseNVDAObjectOverlayClasses(self, obj, clsList):
 		if not isinstance(obj, NVDAObjects.UIA.UIA):
 			return
 		cls = uiaClass(obj)
-		if cls == "MuliSelCombox":
+		if obj.role in (controlTypes.Role.DATAITEM, controlTypes.Role.TABLECELL) and not obj.name:
+			try:
+				if (getattr(obj.parent, "UIAAutomationId", "") or "").endswith("tableWidgetLicense"):
+					clsList.insert(0, LicenseCell)
+			except Exception:
+				pass
+		elif cls == "MuliSelCombox":
 			clsList.insert(0, MultiSelCombo)
 		elif cls == "ClickedLineEdit":
 			try:
@@ -1826,6 +1899,7 @@ class AppModule(appModuleHandler.AppModule):
 	# żeby nie przeszkadzać trybowi przeglądania na stronach WWW.
 	def _setDialogGestures(self, on, cls=""):
 		lic = bool(on) and cls == LICENSE_CLASS
+		log.info("StreamFab dostęp: gesty okna (otwarte=%r, klasa=%r, Licencja=%r)", on, cls, lic)
 		if lic != self._licenseMode:
 			self._licenseMode = lic
 			for g in LICENSE_GESTURES:
@@ -1930,8 +2004,12 @@ class AppModule(appModuleHandler.AppModule):
 		core.callLater(300, self._syncAfterClose)
 
 	@script(description="Enter w oknie Licencja: wykonuje akcję elementu wybranego Tabem (otwiera listę licencji, "
-		"przełącza pole, naciska przycisk; Subskrybuj teraz dopiero po potwierdzeniu)", category=CATEGORY)
+		"przełącza pole, naciska przycisk; przycisk zakupu dopiero po potwierdzeniu)", category=CATEGORY)
 	def script_licenseActivate(self, gesture):
+		# fokus w komórce tabeli, a własny cykl Tab nie wskazuje innego elementu: Enter otwiera pełną listę
+		if isinstance(api.getFocusObject(), LicenseCell) and self.worker.licCur in (None, "tableWidgetLicense"):
+			self.worker.tasks.put(self.worker.taskLicenseTable)
+			return
 		if not self._licenseMode or not self.worker.licCur:
 			gesture.send()
 			return
@@ -1990,7 +2068,7 @@ class AppModule(appModuleHandler.AppModule):
 		if role in ITEM_ROLES and obj.name:
 			self._cleanItem(obj)
 			return
-		if self._licenseMode and role == controlTypes.Role.DATAITEM and not obj.name:
+		if isinstance(obj, LicenseCell) and not obj.name:
 			self._nameLicenseCell(obj)
 			return
 		if not aid:
@@ -2079,8 +2157,7 @@ class AppModule(appModuleHandler.AppModule):
 		if cells:
 			obj.name = ", ".join(t for c, t in sorted(cells.items()))
 		else:
-			obj.name = "Wiersz %d tabeli licencji" % (row + 1)
-			obj.description = "Tab do tabeli, potem Enter: pełna lista licencji"
+			obj.name = LICENSE_CELL
 
 	def _nameFilmRow(self, obj):
 		"""Wiersze listy pobranych są rysowane bez tekstu — nazwę bierzemy z plików danych programu."""
@@ -2194,11 +2271,14 @@ class AppModule(appModuleHandler.AppModule):
 			"Na liście Język audio lub Napisy: Enter, Alt+strzałka w dół, F4 lub Spacja otwiera listę, Spacja zaznacza język, Enter lub Escape zamyka listę. "
 			"W oknie pobranych filmów: Enter lub Alt+O odtwarza, Alt+F pokazuje w folderze, Alt+K kopiuje ścieżkę, Escape zamyka. "
 			"W oknie kolejki pobierania Escape zamyka. "
-			"W oknie Licencja: " + LICENSE_NEXT + "Tab i Shift+Tab przechodzą po elementach: tabela licencji, oferta Fab365, Subskrybuj teraz, "
-			"Nie pokazuj ponownie, Rozpocznij StreamFab, Zamknij; Enter lub Spacja wykonuje akcję: na tabeli otwiera pełną listę "
+			"W oknie Licencja przy starcie programu: " + LICENSE_NEXT + "W oknie Licencja otwartym z menu Moje konto albo po zalogowaniu "
+			"nie ma Rozpocznij StreamFab ani Nie pokazuj ponownie: " + LICENSE_NEXT_CLOSE + "Ctrl+Shift+O też naciska Zamknij. "
+			"Po zalogowaniu: " + LICENSE_WAITING + "Tab i Shift+Tab przechodzą po elementach: tabela licencji, oferta, przycisk zakupu "
+			"(Subskrybuj teraz albo Kup teraz), Nie pokazuj ponownie, Rozpocznij StreamFab, Zamknij — tylko te, które są w oknie; "
+			"Enter lub Spacja wykonuje akcję: na tabeli otwiera pełną listę "
 			"licencji do czytania strzałkami, Escape zamyka listę; pole Nie pokazuj ponownie przełącza; "
-			"Subskrybuj teraz otwiera stronę zakupu dopiero po drugim naciśnięciu. "
-			"Ctrl+Shift+O: Rozpocznij StreamFab. Ctrl+Shift+C: Zamknij. Ctrl+Shift+R: przeczytaj okno Licencja. "
+			"przycisk zakupu otwiera stronę zakupu dopiero po drugim naciśnięciu. Enter w komórce tabeli też otwiera pełną listę. "
+			"Ctrl+Shift+O: Rozpocznij StreamFab albo Zamknij. Ctrl+Shift+C: Zamknij. Ctrl+Shift+R: przeczytaj okno Licencja. "
 			"Ctrl+Shift+H: ta pomoc. Skróty zmienisz w NVDA, Ustawienia, Zdarzenia wejścia, kategoria StreamFab dostęp, "
 			"otwierając to okno przy aktywnym StreamFab."
 		)
