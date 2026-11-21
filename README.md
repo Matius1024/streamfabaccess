@@ -2,17 +2,18 @@
 
 Dodatek do czytnika ekranu [NVDA](https://www.nvaccess.org/), który poprawia dostępność programu **StreamFab** (StreamFab64.exe) dla osób niewidomych.
 
-Aktualna wersja: **0.6.7**.
+Aktualna wersja: **0.6.8**.
 
 ## Pobieranie i instalacja
 
-1. Pobierz najnowszą wersję (0.6.7): [streamfabaccess.nvda-addon](https://github.com/Matius1024/streamfabaccess/releases/latest/download/streamfabaccess.nvda-addon) (link zawsze prowadzi do najnowszego wydania; wcześniejsze wersje są w zakładce [Releases](../../releases)).
+1. Pobierz najnowszą wersję (0.6.8): [streamfabaccess.nvda-addon](https://github.com/Matius1024/streamfabaccess/releases/latest/download/streamfabaccess.nvda-addon) (link zawsze prowadzi do najnowszego wydania; wcześniejsze wersje są w zakładce [Releases](../../releases)).
 2. Otwórz go (Enter w Eksploratorze), potwierdź instalację i uruchom ponownie NVDA.
 
 Wymagany NVDA 2024.1 lub nowszy (testowano z NVDA 2026.3 i StreamFab 7.0.5.7 na Windows 11).
 
 ## Co robi
 
+- Czyta po polsku około 730 angielskich napisów StreamFab, których brakuje w polskim tłumaczeniu programu (przyciski, etykiety, komunikaty, ustawienia, nazwy rzadszych języków). Nazwy serwisów i produktów zostają oryginalne, a tekst stron w przeglądarce StreamFab nie jest zmieniany.
 - Nadaje polskie nazwy nieopisanym przyciskom: Wstecz, Dalej, Odśwież, Adres strony, Nowa karta, Zamknij, Wybierz folder i inne.
 - Ogłasza stan pobierania („Gotowe do pobrania”, kolejka zadań) i nowe okna (komunikaty, ostrzeżenia, menu).
 - Pozwala nacisnąć przycisk pobierania wideo, który nie jest dostępny klawiszem Tab.
@@ -106,6 +107,11 @@ Okno aktualizacji nie przepuszcza Tab do przycisków, dlatego działa w nim wła
 Każdy skrót obu modułów ma polski opis i można go zmienić w NVDA: Ustawienia → Zdarzenia wejścia → kategoria „StreamFab dostęp” (wspólna dla obu modułów). Skróty modułu widać tam tylko wtedy, gdy okno Zdarzeń wejścia otworzysz przy aktywnym StreamFab (skróty StreamFab) albo przy aktywnym oknie aktualizacji (skróty okna aktualizacji). Tab, Shift+Tab, strzałki, Spacja i Escape (a w oknie Licencja także Enter) w StreamFab mają przypisany klawisz tylko wtedy, gdy w StreamFab jest otwarte okno, a otwieranie listy języków widać, gdy fokus jest na liście Język audio lub Napisy.
 
 Pełna dokumentacja: [addon/doc/pl/readme.html](addon/doc/pl/readme.html) (dostępna też w Menedżerze dodatków NVDA).
+
+## Co nowego w 0.6.8
+
+- Około 730 angielskich napisów StreamFab, których brakuje w polskim tłumaczeniu programu (pliki QLanguage), jest czytanych po polsku: przyciski, etykiety, komunikaty, ustawienia, okna AI Subtitle, historia pobierania i nazwy rzadszych języków. Napisy z liczbami (np. „12 videos found”) też są tłumaczone. Nazwy serwisów i produktów (Netflix, Disney+, UHD Ripper) zostają oryginalne, a tekst stron w przeglądarce StreamFab nie jest zmieniany. 121 napisów pochodzi z oficjalnego polskiego tłumaczenia StreamFab z innych okien.
+- Po aktualizacji StreamFab nowe nieprzetłumaczone napisy pokazuje `python narzedziarakujace_napisy.py`; test tłumaczenia: `python narzedzia	est_tlumacz.py`.
 
 ## Co nowego w 0.6.7
 

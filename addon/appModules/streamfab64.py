@@ -27,6 +27,9 @@ import UIAHandler
 import winUser
 import wx
 from logHandler import log
+
+from ._slownik_pl import SLOWNIK
+from ._tlumacz import zbudujTlumacza
 from scriptHandler import script
 
 UIA = UIAHandler.UIA
@@ -243,6 +246,9 @@ NAMED_ROLES = (
 	controlTypes.Role.MENUBUTTON,
 )
 _PREFIX = re.compile(r"^(pushButton|toolButton|btn|button|comboBox|lineEdit|ledt|checkBox|radioButton)_?|^l_", re.I)
+
+
+tr = zbudujTlumacza(SLOWNIK, TRANSLATE)
 
 
 def humanize(objectName):
@@ -1071,7 +1077,7 @@ class Worker(threading.Thread):
 		try:
 			el = self.find(dlg, lambda e: e.CurrentControlType == TEXT_TYPE and self.last(e) in MESSAGE_LABELS)
 			text = (el.CurrentName or "").strip() if el else ""
-			text = TRANSLATE.get(text, text).rstrip(".")
+			text = tr(text).rstrip(".")
 		except comtypes.COMError:
 			return
 		prev, self._message = self._message, text
@@ -1338,7 +1344,7 @@ class Worker(threading.Thread):
 		name = (el.CurrentName or "").strip()
 		if not name:
 			name = NAMES.get(last) or humanize(last)
-		return TRANSLATE.get(name, name)
+		return tr(name)
 
 	def taskDialogButton(self, groups, names, label):
 		dlg = self.activeDialog()
@@ -1423,7 +1429,7 @@ class Worker(threading.Thread):
 			try:
 				if el.CurrentControlType == TEXT_TYPE:
 					t = (el.CurrentName or "").strip()
-					t = TRANSLATE.get(t, t)
+					t = tr(t)
 				else:
 					v = el.GetCurrentPattern(UIA.UIA_ValuePatternId).QueryInterface(UIA.IUIAutomationValuePattern).CurrentValue
 					t = "pole %s: %s" % (el.CurrentName or NAMES.get(self.last(el), ""), v or "puste")
@@ -2065,6 +2071,17 @@ class AppModule(appModuleHandler.AppModule):
 		if aid is None or isinstance(obj, MultiSelCombo):
 			return
 		role = obj.role
+		# Napisy, których brakuje w polskim tłumaczeniu StreamFab (program pokazuje je po angielsku).
+		# Treści stron w przeglądarce (okna Chrome_* z CEF) nie tłumaczymy.
+		web = (obj.windowClassName or "").startswith("Chrome_")
+		if obj.name and not web:
+			pl = tr(obj.name)
+			if pl != obj.name:
+				obj.name = pl
+		if obj.description and not web:
+			pl = tr(obj.description)
+			if pl != obj.description:
+				obj.description = pl
 		if role in ITEM_ROLES and obj.name:
 			self._cleanItem(obj)
 			return
@@ -2130,6 +2147,7 @@ class AppModule(appModuleHandler.AppModule):
 					pass
 		elif obj.role == controlTypes.Role.LISTITEM:
 			name = _LANG_WORD.sub(lambda m: LANGUAGES[m.group(1)], name)
+		name = tr(name)
 		if name != obj.name:
 			obj.name = name
 
